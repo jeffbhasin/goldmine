@@ -21,11 +21,11 @@ getUCSCTable <- function(table, genome, local=NULL, version="latest", sync=TRUE,
 	# If we need to sync and a local path has been given
 	if((!is.null(local))&(sync==TRUE))
 	{
-		# check that our local string has a trailing slash and add one if it does not
-		local <- normalizePath(local)
-
 		# create dir (if we can) if it does not exist already
 		if(!is.null(local)){dir.create(local, showWarnings = FALSE)}
+
+		# check that our local string has a trailing slash and add one if it does not
+		local <- normalizePath(local)
 
 		# check that the local string points to a path that exists
 		if(!file.exists(local)){stop(paste("Error: Local path",local,"does not exist. Please check the path and create the directory if necessary.",sep=" "))}
