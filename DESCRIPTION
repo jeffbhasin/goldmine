@@ -1,0 +1,25 @@
+Package: goldmine
+Maintainer: Jeffrey Bhasin <jeffb@case.edu>
+Author: Jeffrey Bhasin <jeffb@case.edu>
+Version: 0.1
+License: GPL-3
+Title: goldmine: Genomic context annotation for any set of genomic
+    ranges using UCSC Genome Browser tables
+Description: Goldmine obtains data by direct downloading and updating of a
+    local mirror of select UCSC Genome Browser annotation tables. The R package
+    contains functions to assess genomic context of any given set of genomic
+    ranges by performing overlaps with regions of annotated genomic features
+    and produce long, short, and plot outputs.
+Depends:
+    GenomicRanges,
+    Biostrings,
+    stringr,
+    httr,
+    R.utils
+Suggests:
+    testthat,
+    roxygen2
+Collate:
+    'goldmine-package.r'
+    'ucsc.R'
+Packaged: 2013-07-31 22:11:50 UTC; bhasinj

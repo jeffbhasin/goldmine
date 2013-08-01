@@ -1,0 +1,6 @@
+export(getUCSCTable)
+import(Biostrings)
+import(GenomicRanges)
+import(R.utils)
+import(httr)
+import(stringr)
