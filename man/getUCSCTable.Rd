@@ -18,6 +18,16 @@
   (default), the data will be downloaded to temporary files
   and loaded on the fly.}
 
+  \item{version}{If "latest" (default) then use the newest
+  version of the table available. If set to a timestamp
+  string of an archived table (format:
+  YYYY-MM-DD-HH-MM-SS), then load this specific version.
+  Obtain these strings by examining the file names under
+  your cache directory. An archive file with a date stamp
+  is saved automatically with each download of a new
+  version. This feature only works if you have a local
+  cache that contains the desired versions.}
+
   \item{sync}{If \code{TRUE}, then check if a newer version
   is available and download if it is. If \code{FALSE}, skip
   this check. Only has an effect if a local cache directory

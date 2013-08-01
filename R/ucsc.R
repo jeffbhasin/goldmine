@@ -11,7 +11,7 @@
 #' @param table The UCSC string specific for the table to sync (e.g. "knownGene", "kgXref", etc)
 #' @param genome The UCSC string specific to the genome to be downloaded (e.g. "hg19", "hg19", "mm10", etc)
 #' @param local A path to a directory where a local cache of UCSC tables are stored. If equal to \code{NULL} (default), the data will be downloaded to temporary files and loaded on the fly.
-# @param version If "latest" then use the newest version of the table available. If set to a timestamp string of an archived table (format: YYYY-MM-DD-HH-MM-SS), then load this specific version. Obtain these strings by examining the file names under your cache directory. An archive file with a date stamp is saved automatically with each download of a new version.
+#' @param version If "latest" (default) then use the newest version of the table available. If set to a timestamp string of an archived table (format: YYYY-MM-DD-HH-MM-SS), then load this specific version. Obtain these strings by examining the file names under your cache directory. An archive file with a date stamp is saved automatically with each download of a new version. This feature only works if you have a local cache that contains the desired versions.
 #' @param sync If \code{TRUE}, then check if a newer version is available and download if it is. If \code{FALSE}, skip this check. Only has an effect if a local cache directory (\code{local}) is given.
 #' @param url The root of the remote http URL to download UCSC data from (set by default to \code{http://hgdownload.cse.ucsc.edu/goldenPath/})
 #' @return A data.frame of the desired UCSC table.
@@ -27,20 +27,36 @@ getUCSCTable <- function(table, genome, local=NULL, version="latest", sync=TRUE,
 		if(!file.exists(local)){stop(paste("Error: Local path",local,"does not exist. Please check the path and create the directory if necessary.",sep=" "))}
 		syncUCSCTable(table, genome, url, local)
 
+		# Check if we are loading an archived version
+		if(version!="latest")
+		{
+			local.version=paste(".",version,sep="")
+			print(paste("Using Archived Version: ",version,sep=" "))
+		} else
+		{
+			local.version=""
+		}
+
 		# Set paths
-		local.sql <- file.path(local, genome, "database", paste(table, ".sql", sep=""))
-		local.txt <- file.path(local, genome, "database", paste(table, ".txt", sep=""))
+		local.sql <- file.path(local, genome, "database", paste(table, local.version, ".sql", sep=""))
+		local.txt <- file.path(local, genome, "database", paste(table, local.version, ".txt", sep=""))
 	} else if ((!is.null(local))&(sync==FALSE))
 	{
 		# If we don't need to sync and a local path has been given
 
-		# Set Paths
-		local.sql <- file.path(local, genome, "database", paste(table, ".sql", sep=""))
-		local.txt <- file.path(local, genome, "database", paste(table, ".txt", sep=""))
+		# Check if we are loading an archived version
+		if(version!="latest")
+		{
+			local.version=paste(".",version,sep="")
+			print(paste("Using Archived Version: ",version,sep=" "))
+		} else
+		{
+			local.version=""
+		}
 
-		# Check that the files really exist
-		if(!file.exists(local.txt)){stop(paste("Error: Local path",local.txt,"does not exist. Please check the table name.",sep=" "))}
-		if(!file.exists(local.sql)){stop(paste("Error: Local path",local.sql,"does not exist. Please check the table name.",sep=" "))}
+		# Set paths
+		local.sql <- file.path(local, genome, "database", paste(table, local.version, ".sql", sep=""))
+		local.txt <- file.path(local, genome, "database", paste(table, local.version, ".txt", sep=""))
 
 	} else if(is.null(local))
 	{
