@@ -10,10 +10,12 @@
 
 ## Installation
 From R:
+
 	library(devtools)
 	install_github("goldmine", user="bluecranium")
 
 ## Usage
 Example: Loading knownGene on the fly to a data.frame
+
 	library(goldmine)
 	knownGene <- getUCSCTable("knownGene","hg19")
