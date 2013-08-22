@@ -1146,7 +1146,7 @@ getBrowserURLs <- function(input.gr, genome)
 {
 	# Give links to UCSC at the position of this region
 	#http://genome.ucsc.edu/cgi-bin/hgTracks?db=hg19&position=chr22%3A1-500
-	paste("http://genome.ucsc.edu/cgi-bin/hgTracks?db=", genome, "&position=", as.vector(seqnames(input.gr)), "%3A", start(input.gr), "-", end(input.gr),sep="")
+	paste("http://genome.ucsc.edu/cgi-bin/hgTracks?db=", genome, "&position=", seqnames(input.gr), "%3A", start(input.gr), "-", end(input.gr),sep="")
 }
 # -----------------------------------------------------------------------------
 
