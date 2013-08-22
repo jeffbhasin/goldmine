@@ -16,6 +16,7 @@ Depends:
     stringr,
     httr,
     RCurl,
+    plyr,
     R.utils
 Suggests:
     testthat,
@@ -23,4 +24,5 @@ Suggests:
 Collate:
     'goldmine-package.r'
     'ucsc.R'
+    'annotate.R'
 Packaged: 2013-07-31 22:11:50 UTC; bhasinj
