@@ -134,19 +134,20 @@ getSeqMeta <- function(ranges,bsgenome,genome,cachedir)
 	# Add extra variables from annotation
 	seq.ranges <- gr
 
-	repeatPer <- getRepeatPercentFast(seq.ranges,rmsk)
+	repeatPer <- getRepeatPercentFast(seq.ranges,genome,cachedir)
 	sizeLog <- log10(size)
-	distTSS <- getDistTSS(seq.ranges,ann)
-	distTSE <- getDistTSE(seq.ranges,ann)
-	distTSSCenter <- getDistTSSCenter(seq.ranges,ann)
-	distTSECenter <- getDistTSECenter(seq.ranges,ann)
+	#distTSS <- getDistTSS(seq.ranges,ann)
+	#distTSE <- getDistTSE(seq.ranges,ann)
+	#distTSSCenter <- getDistTSSCenter(seq.ranges,ann)
+	#distTSECenter <- getDistTSECenter(seq.ranges,ann)
 	distTSSCenterLogX1 <- log10(getDistTSSCenter(seq.ranges,ann)+1)
 	distTSECenterLogX1 <- log10(getDistTSECenter(seq.ranges,ann)+1)
-	freqCpG <- getFreqCpG(myseq)
+	freqCpG <- getFreqCpG(seq)
 
 	# combine into our covariate dataframe
 	#seq.meta <- data.frame(name, chr, start, end, size, sizeLog, gc, freqCpG, repeatPer, distTSS, distTSSCenter, distTSSCenterLogX1, distTSE, distTSECenter, distTSECenterLogX1)
 	seq.meta <- data.frame(name, chr, start, end, size, sizeLog, gc, freqCpG, repeatPer, distTSSCenterLogX1, distTSECenterLogX1)
+	#seq.meta <- data.frame(name, chr, start, end, size, sizeLog, gc, freqCpG, repeatPer)
 
 	# Return list with seq and then df of metadata
 	ret <- list(seq=seq,meta=seq.meta)
