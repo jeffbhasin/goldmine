@@ -38,10 +38,39 @@ makeGRanges <- function(obj)
 }
 # -----------------------------------------------------------------------------
 
-# -----------------------------------------------------------------------------
-# features.gr needs to have a metadata field called "factor" that tells the feature type
-testEnrichment <- function(query.gr, background.gr, features.gr)
+# Given two sets of genomic ranges, count the number of each type of features in the query
+countFeatures <- function(query.gr, features.gr)
 {
+	fo <- findOverlaps(query.gr, features.gr)
+	qh <- queryHits(fo)
+	sh <- subjectHits(fo)
+	query.hits <- data.frame(chr=seqnames(query.gr[qh]), start=start(query.gr[qh]), end=end(query.gr[qh]), factor=features.gr[sh]$factor)
+	query.hits$queryRegion <- with(query.hits,paste(chr, ":", start, "-", end, sep=""))
+	query.counts <- ddply(query.hits, .(factor), summarize, nQueryRegions=length(unique(queryRegion)))
+	query.counts
+}
+
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+#' Make a GRanges from a data.frame or data.table with the fields "chr", "start", and "end"
+#'
+#' Given a data.frame or data.table with the columns "chr", "start", and "end", a GenomicRanges (GRanges) object will be created. All other columns will be passed on as metadata. If the input is already a GRanges, it is simply returned.
+#' @param obj A data.frame or data.table with columns "chr", "start", and "end" and any other columns
+#' @return A GRanges made from the data in obj.
+#' @export
+testEnrichment <- function(query, background, features)
+{
+	# Convert to GRanges
+	query.gr <- makeGRanges(query)
+	background.gr <- makeGRanges(background)
+	features.gr <- makeGRanges(features)
+
+	if(!("factor" %in% colnames(values(features.gr))))
+	{
+		stop("The object given in features must contain a column named \"factor\". The set of ranges for each factor type given will be tested separately for enrichment.")
+	}
+
 	# Total number of sites in each
 	n.query <- length(query.gr)
 	n.background <- length(background.gr)
@@ -89,7 +118,7 @@ testEnrichment <- function(query.gr, background.gr, features.gr)
 	frac.background <- round(counts$background/n.background,2)
 	out <- data.frame(factor=counts$factor, overlap.query=counts$query, n.query=n.query, overlap.background=counts$background, n.background=n.background, frac.query, frac.background, frac.diff=frac.query-frac.background, p.value=pvs, p.adjusted=pva, sig=pva<0.05)
 
-	out <- out[order(out$frac.query, decreasing=TRUE),]
+	out <- out[order(out$frac.diff, decreasing=TRUE),]
 	out
 }
 # -----------------------------------------------------------------------------

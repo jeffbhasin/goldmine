@@ -17,9 +17,10 @@
 #' @param version If "latest" (default) then use the newest version of the table available. If set to a timestamp string of an archived table (format: YYYY-MM-DD-HH-MM-SS), then load this specific version. Obtain these strings by examining the file names under your cache directory. An archive file with a date stamp is saved automatically with each download of a new version. This feature only works if you have a cachedir cache that contains the desired versions.
 #' @param sync If \code{TRUE}, then check if a newer version is available and download if it is. If \code{FALSE}, skip this check. Only has an effect if a cachedir cache directory (\code{cachedir}) is given.
 #' @param url The root of the remote http URL to download UCSC data from (set by default to \code{http://hgdownload.cse.ucsc.edu/goldenPath/})
+#; @param fread Use fread() from data.table and return a data.table object rather than the possibly much slower read.table() from base. Set to FALSE if you want a data.frame returned rather than a data.table. Default: TRUE
 #' @return A data.frame of the desired UCSC table.
 #' @export
-getUCSCTable <- function(table, genome, cachedir=NULL, version="latest", sync=TRUE, url="http://hgdownload.cse.ucsc.edu/goldenPath/")
+getUCSCTable <- function(table, genome, cachedir=NULL, version="latest", sync=TRUE, url="http://hgdownload.cse.ucsc.edu/goldenPath/", fread=TRUE)
 {
 	# If we need to sync and a cachedir path has been given
 	if((!is.null(cachedir))&(sync==TRUE))
@@ -89,16 +90,26 @@ getUCSCTable <- function(table, genome, cachedir=NULL, version="latest", sync=TR
 	}
 
 	# We can now open the data from the TXT
-	#txt <- read.table(file=cachedir.txt, comment.char="", header=FALSE, stringsAsFactors=FALSE, sep="\t", quote="")
-	txt <- fread(cachedir.txt)
+	if(fread==TRUE)
+	{
+		txt <- fread(cachedir.txt)
+	} else
+	{
+		txt <- read.table(file=cachedir.txt, comment.char="", header=FALSE, stringsAsFactors=FALSE, sep="\t", quote="")
+	}
 	txt.nCols <- ncol(txt)
 
 	# Parse SQL schema to get the row names
 	mycols <- getTableHeaderFromSQL(cachedir.sql)
 
 	# Set table with these row names
-	#names(txt) <- mycols
-	setnames(txt,mycols)
+	if(fread==TRUE)
+	{
+		setnames(txt,mycols)
+	} else
+	{
+		names(txt) <- mycols
+	}
 
 	# Return the dataframe
 	txt
