@@ -15,9 +15,10 @@
 #' @param genome The UCSC name specific to the genome of the query coordinates (e.g. "hg19", "hg18", "mm10", etc)
 #' @param cachedir A path to a directory where a local cache of UCSC tables are stored. If equal to \code{NULL} (default), the data will be downloaded to temporary files and loaded on the fly.
 #' @param flank.bp The size in base pairs for the flanking category. Note that portions of flanks that overlap with gene bodies are no longer considered flanks in this analysis.
+#' @param gene.names Include gene names (symbols) in output. Disabling improves speed for large sets of regions (100,000+).
 #' @return A data.frame with all rows and columns of the query data.frame with the annotation columns added.
 #' @export
-annotateSimple <- function(query, genome, cachedir=NULL, flank.bp=1000)
+annotateSimple <- function(query, genome, cachedir=NULL, flank.bp=1000, gene.names=TRUE)
 {
 	# Check that query has the needed columns
 	if(sum(c("chr", "start", "end") %in% colnames(query))!=3)
@@ -97,24 +98,35 @@ annotateSimple <- function(query, genome, cachedir=NULL, flank.bp=1000)
 		genes.df$gene <- kg[genes.df$srow,]$geneSymbol
 
 		# Condense into comma-separated lists, removing duplicate symbols
+		genes.dt <- data.table(genes.df)
+		setkey(genes.dt, qrow, srow)
+
+		i<-0
 		commaGenes <- function(x)
 		{
-			genes <- unique(kg[x$srow,]$geneSymbol)
+			i<<-i+1
+			if((i %% 10000)==0)
+			{
+				print(paste("Done with genic gene names for ",i, " regions",sep=""))
+			}
+			#genes <- unique(kg[x,]$geneSymbol)
+			genes <- unique(x)
 			genes <- paste(genes, collapse=", ")
+			genes
 		}
-		g <- by(genes.df, INDICES=genes.df$qrow, FUN=commaGenes)
-
-		# Join back to original rowids
-		g <- data.frame(qrow=as.numeric(names(g)), genes=as.vector(g))
+		g <- genes.dt[,commaGenes(gene), by=qrow]
+		setkey(g, qrow)
 
 		# Add blanks for intergenics
-		out <- data.frame(qrow=query.gr$qrow)
-		out <- join(out, g , by="qrow", type="left", match="first")
-		out$genes <- as.character(out$genes)
-		out[is.na(out$genes),]$genes <- ""
-
+		out <- data.table(qrow=query.gr$qrow)
+		setkey(out, qrow)
+		out <- merge(out, g, by="qrow", all.x=TRUE, all.y=FALSE)
+		if(sum(is.na(out$V1)) > 0)
+		{
+			out[is.na(V1),]$V1 <- ""
+		}
 		# Return vector of strings, rows matching input.gr
-		out$genes
+		out$V1
 	}
 	# maps IDs to use the flank list
 	# to get these, we need both the set reduced/diffed version and the non. We'll intersect with the reduced version then intersect back to the non-reduced version to pull out what genes were involved in that flank.
@@ -135,24 +147,36 @@ annotateSimple <- function(query, genome, cachedir=NULL, flank.bp=1000)
 		genes.df$gene <- kg[flank.full.gr[genes.df$srow]$srow,]$geneSymbol
 
 		# Condense into comma-separated lists, removing duplicate symbols
+		genes.dt <- data.table(genes.df)
+		setkey(genes.dt, qrow, srow)
+
+		i<-0
 		commaGenes <- function(x)
 		{
-			genes <- unique(kg[flank.full.gr[x$srow,]$srow,]$geneSymbol)
+			i<<-i+1
+			if((i %% 10000)==0)
+			{
+				print(paste("Done with flanking gene names for ",i, " regions",sep=""))
+			}
+			#genes <- unique(kg[flank.full.gr[x,]$srow,]$geneSymbol)
+			genes <- unique(x)
 			genes <- paste(genes, collapse=", ")
+			#print(genes)
+			genes
 		}
-		g <- by(genes.df, INDICES=genes.df$qrow, FUN=commaGenes)
-
-		# Join back to original rowids
-		g <- data.frame(qrow=as.numeric(names(g)), genes=as.vector(g))
+		g <- genes.dt[,commaGenes(gene), by=qrow]
+		setkey(g, qrow)
 
 		# Add blanks for intergenics
-		out <- data.frame(qrow=query.gr$qrow)
-		out <- join(out, g , by="qrow", type="left", match="first")
-		out$genes <- as.character(out$genes)
-		out[is.na(out$genes),]$genes <- ""
-
+		out <- data.table(qrow=query.gr$qrow)
+		setkey(out, qrow)
+		out <- merge(out, g, by="qrow", all.x=TRUE, all.y=FALSE)
+		if(sum(is.na(out$V1)) > 0)
+		{
+			out[is.na(V1),]$V1 <- ""
+		}
 		# Return vector of strings, rows matching input.gr
-		out$genes
+		out$V1
 	}
 	# find nearest gene, return DF of nearest and distance to
 	getNearestGene <- function(query.gr, subject.gr, kg)
@@ -165,27 +189,39 @@ annotateSimple <- function(query, genome, cachedir=NULL, flank.bp=1000)
 		genes.df$gene <- kg[subject.gr[genes.df$srow]$srow,]$geneSymbol
 
 		# Condense into comma-separated lists, removing duplicate symbols
-		out <- vector("character",length=length(unique(genes.df$qrow)))
+		genes.dt <- data.table(genes.df)
+		setkey(genes.dt, qrow, srow)
 
+		i<-0
 		commaGenes <- function(x)
 		{
-			genes <- unique(kg[subject.gr[x$srow,]$srow,]$geneSymbol)
+			i<<-i+1
+			if((i %% 10000)==0)
+			{
+				print(paste("Done with nearest gene names for ",i, " regions",sep=""))
+			}
+			#genes <- unique(kg[flank.full.gr[x,]$srow,]$geneSymbol)
+			genes <- unique(x)
 			genes <- paste(genes, collapse=", ")
+			#print(genes)
+			genes
 		}
-		g <- by(genes.df, INDICES=genes.df$qrow, FUN=commaGenes)
-
-		# Join back to original rowids
-		g <- data.frame(qrow=as.numeric(names(g)), nearest.gene=as.vector(g))
+		g <- genes.dt[,commaGenes(gene), by=qrow]
+		setkey(g, qrow)
 
 		# Add blanks for intergenics
-		out <- data.frame(qrow=query.gr$qrow)
-		out <- join(out, g , by="qrow", type="left", match="first")
-		out$nearest.gene <- as.character(out$nearest.gene)
-
+		out <- data.table(qrow=query.gr$qrow)
+		out <- merge(out, g, by="qrow", all.x=FALSE, all.y=FALSE)
+		if(sum(is.na(out$V1)) > 0)
+		{
+			out[is.na(V1),]$V1 <- ""
+		}
+		out <- data.frame(out)
 		# Add distance in bp
 		ddf <- data.frame(qrow=near.fo$queryHits, nearest.bp=near.fo$dist)
 		out <- join(out, ddf, by="qrow", type="left", match="first")
-
+		colnames(out) <- c("qrow", "nearest.gene", "nearest.bp")
+		out$qrow <- NULL
 		# Return df
 		out
 
@@ -210,12 +246,15 @@ annotateSimple <- function(query, genome, cachedir=NULL, flank.bp=1000)
 	ann$int <- NULL
 	ann$cis <- NULL
 
-	print("Pulling gene symbols for overlaps")
-	ann$genic.genes <- getGeneList(input.gr, genic.full.gr, kg)
-	ann$flank.genes <- getGeneListForFlanks(input.gr, flank.gr, flank.full.gr, kg)
-
-	ann <- cbind(ann, getNearestGene(input.gr, genic.full.gr, kg))
-
+	if(gene.names==TRUE)
+	{
+		print("Pulling gene symbols for overlaps: Genic")
+		ann$genic.genes <- getGeneList(input.gr, genic.full.gr, kg)
+		print("Pulling gene symbols for overlaps: Flanking")
+		ann$flank.genes <- getGeneListForFlanks(input.gr, flank.gr, flank.full.gr, kg)
+		print("Pulling gene symbols for overlaps: Nearest")
+		ann <- cbind(ann, getNearestGene(input.gr, genic.full.gr, kg))
+	}
 	ann$url <- getBrowserURLs(input.gr, genome)
 
 	# return the annotated columns
@@ -673,22 +712,42 @@ reportGeneModel <- function(query, genome, cachedir=NULL, flank.bp=1000)
 	all.o <- rbind(exon.o, intron.o)
 
 	# Make a DF with all possible introns and exon numbers
+	print("Generating exon/intron overlaps")
 	kgxs <- rbind(data.frame(srow=exon.gr$srow, num=exon.gr$num, type="E"), data.frame(srow=intron.gr$srow, num=intron.gr$num, type="I"))
 
 	pairs <- data.frame(qrow=ann$qrow, srow=ann$srow)
-	kgx <- join(pairs, kgxs, by="srow")
+
+	pairs.dt <- data.table(pairs)
+	setkey(pairs.dt, qrow, srow)
+	kgxs.dt <- data.table(kgxs)
+	setkey(kgxs.dt, srow)
+
+	kgx.dt <- merge(pairs.dt, kgxs.dt, by="srow", allow.cartesian=TRUE)
 
 	# Join our percents in
-	ts <- join(kgx, all.o, by=c("qrow","srow", "num", "type"))
+	all.o.dt <- data.table(all.o)
+	setkey(all.o.dt, qrow, srow, num, type)
+	ts.dt <- merge(kgx.dt, all.o.dt, by=c("qrow","srow","num","type"), all.x=TRUE, all.y=FALSE)
+
+	#ts <- join(kgx, all.o, by=c("qrow","srow","type"))
 
 	# Assign the rest as 0%
-	ts[is.na(ts$per),]$per <- 0
+	if(sum(is.na(ts.dt$per))>0)
+	{
+		ts.dt[is.na(ts.dt$per),]$per <- 0
+	}
 
-	print("Computing Exon/Intron Overlaps...")
+	print("Processing exon/intron overlap diagrams")
 
 	# Now use this to make the format strings
+	i<-0
 	procex <- function(x)
 	{
+		i<<-i+1
+		if((i %% 10000)==0)
+		{
+			print(paste("Made exon/intron strings for ",i, " overlaps",sep=""))
+		}
 		#E1(25%), I1(25%), I2(0%), E2(0%)
 		ourstrand <- kg[x[1,]$srow,]$strand
 		if(ourstrand=="-")
@@ -703,11 +762,16 @@ reportGeneModel <- function(query, genome, cachedir=NULL, flank.bp=1000)
 		x2$string <- paste(x2$type, x2$num, " (", x2$per,")", sep="")
 		paste(x2$string, collapse=", ")
 	}
-	down <- unlist(by(ts, INDICES=paste(ts$qrow, ts$srow,sep="-"), FUN=procex))
-	idmat <- str_split_fixed(names(down),"-",2)
-	down2 <- data.frame(qrow=as.numeric(idmat[,1]), srow=as.numeric(idmat[,2]), "Exons and Introns"=as.vector(down))
+	ts.dt$pair <- paste(ts.dt$qrow, ts.dt$srow,sep="-")
+	down2 <- ts.dt[,procex(data.frame(qrow, srow, num, type, per)),by=pair]
 
-	ann <- join(ann, down2, by=c("qrow", "srow"))
+	##NEXT
+	down <- data.frame(down2)
+	ann$pair <- paste(ann$qrow, ann$srow,sep="-")
+	ann <- join(ann, down2, by="pair", match="first")
+	ann$pair <- NULL
+	ann$"Introns and Exons" <- ann$V1
+	ann$V1 <- NULL
 
 	#ann$"Exons and Introns" <- down
 	# want a function where given a subset of this DF, return string formatted as:
@@ -915,24 +979,30 @@ annotateFeatures <- function(query, features, getid=NULL, ucsc=FALSE)
 		genes.df$gene <- features[genes.df$srow,colnames(features) %in% getid]
 
 		# Condense into comma-separated lists, removing duplicate symbols
+		genes.dt <- data.table(genes.df)
+		setkey(genes.dt, qrow, srow)
+		i<-0
 		commaGenes <- function(x)
 		{
-			genes <- unique(x$gene)
+			i<<-i+1
+			if((i %% 10000)==0)
+			{
+				print(paste("Done with feature names for ",i, " regions",sep=""))
+			}
+			genes <- unique(x)
 			genes <- paste(genes, collapse=", ")
 		}
-		g <- by(genes.df, INDICES=genes.df$qrow, FUN=commaGenes)
-
-		# Join back to original rowids
-		g <- data.frame(qrow=as.numeric(names(g)), genes=as.vector(g))
+		g <- genes.dt[,commaGenes(gene),by=qrow]
 
 		# Add blanks for intergenics
-		out <- data.frame(qrow=query.gr$qrow)
-		out <- join(out, g , by="qrow", type="left", match="first")
-		out$genes <- as.character(out$genes)
-		out[is.na(out$genes),]$genes <- ""
-
-		# Return vector of strings, rows matching input.gr
-		out$genes
+		out <- data.table(qrow=query.gr$qrow)
+		out <- merge(out, g, by="qrow", all.x=TRUE, all.y=FALSE)
+		setkey(out, qrow)
+		if(sum(is.na(out$V1)) > 0)
+		{
+			out[is.na(V1),]$V1 <- ""
+		}
+		out$V1
 	}
 
 	# Report overlap

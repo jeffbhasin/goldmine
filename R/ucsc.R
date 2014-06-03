@@ -202,8 +202,11 @@ getTableHeaderFromSQL <- function(sql.file)
 	while (length(oneLine <- readLines(con, n = 1, warn = FALSE)) > 0)
 	{
 		linevec <- unlist(str_split(oneLine," "))
-		#print(linevec)
-		if((extract==TRUE)&((linevec[3]=="KEY")|(linevec[3]=="PRIMARY")|(linevec[3]=="UNIQUE")))
+		#print(linevec[3])
+		#if(is.na(linevec[3])){linevec[3]<-"KEY"}
+		#print(linevec[3])
+
+		if((extract==TRUE)&((linevec[3]=="KEY")|(linevec[3]=="PRIMARY")|(linevec[3]=="UNIQUE")|(linevec[3]=="DEFAULT")))
 		{
 			extract <- FALSE
 		}
