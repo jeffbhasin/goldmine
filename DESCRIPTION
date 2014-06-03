@@ -17,6 +17,7 @@ Depends:
     httr,
     RCurl,
     plyr,
+	data.table,
     R.utils
 Suggests:
     testthat,
@@ -25,4 +26,5 @@ Collate:
     'goldmine-package.r'
     'ucsc.R'
     'annotate.R'
+    'enrichment.r'
 Packaged: 2013-07-31 22:11:50 UTC; bhasinj

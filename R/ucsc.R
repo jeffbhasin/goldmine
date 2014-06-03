@@ -89,14 +89,16 @@ getUCSCTable <- function(table, genome, cachedir=NULL, version="latest", sync=TR
 	}
 
 	# We can now open the data from the TXT
-	txt <- read.table(file=cachedir.txt, comment.char="", header=FALSE, stringsAsFactors=FALSE, sep="\t", quote="")
+	#txt <- read.table(file=cachedir.txt, comment.char="", header=FALSE, stringsAsFactors=FALSE, sep="\t", quote="")
+	txt <- fread(cachedir.txt)
 	txt.nCols <- ncol(txt)
 
 	# Parse SQL schema to get the row names
 	mycols <- getTableHeaderFromSQL(cachedir.sql)
 
 	# Set table with these row names
-	names(txt) <- mycols
+	#names(txt) <- mycols
+	setnames(txt,mycols)
 
 	# Return the dataframe
 	txt
