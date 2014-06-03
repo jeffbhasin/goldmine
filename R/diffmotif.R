@@ -114,10 +114,11 @@ getSeqMeta <- function(ranges,bsgenome,genome,cachedir)
 
 	# Get sequence from BSGenome
 	seq <- getSeq(bsgenome, gr)
+	names(seq) <- 1:length(seq)
 
 	# name, size and gc - easy
-	#name <- names(myseq)
-	name <- 1:length(seq)
+	name <- names(seq)
+	#name <- 1:length(seq)
 	size <- width(seq)
 	gc <- getGC(seq)
 
@@ -182,7 +183,7 @@ drawBackgroundSetPropensity <- function(target.seq, target.meta, pool.seq, pool.
 	lrm.out <- lrm(formula, data=all.meta.shuffle)
 
 	# obtain values
-	lrm.out.fitted <- predict.lrm(lrm.out,type="fitted")
+	lrm.out.fitted <- rms:::predict.lrm(lrm.out,type="fitted")
 
 	# match
 	rr <- Match(Y=NULL, Tr=all.meta.shuffle$treat, X=lrm.out.fitted, M=1, version="standard", replace=FALSE)
@@ -192,6 +193,8 @@ drawBackgroundSetPropensity <- function(target.seq, target.meta, pool.seq, pool.
 	matched.meta <- all.meta.shuffle[rr$index.control,]
 	m <- match(as.character(matched.meta$name),names(pool.seq))
 	seq.resamp <- pool.seq[m]
+	ret <- pool.meta[m,]
+	ret
 }
 # -----------------------------------------------------------------------------
 

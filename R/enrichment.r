@@ -46,7 +46,9 @@ countFeatures <- function(query.gr, features.gr)
 	sh <- subjectHits(fo)
 	query.hits <- data.frame(chr=seqnames(query.gr[qh]), start=start(query.gr[qh]), end=end(query.gr[qh]), factor=features.gr[sh]$factor)
 	query.hits$queryRegion <- with(query.hits,paste(chr, ":", start, "-", end, sep=""))
-	query.counts <- ddply(query.hits, .(factor), summarize, nQueryRegions=length(unique(queryRegion)))
+	#query.counts <- ddply(query.hits, .(factor), summarize, nQueryRegions=length(unique(queryRegion)))
+	query.hits <- data.table(query.hits)
+	query.counts <- data.frame(query.hits[,list(nQueryRegions=length(unique(queryRegion))),by="factor"])
 	query.counts
 }
 
