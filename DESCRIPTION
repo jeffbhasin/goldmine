@@ -27,6 +27,6 @@ Collate:
     'ucsc.R'
     'annotate.R'
     'enrichment.r'
-    'diffmotif.r'
-    'GenomeInfo.r'
+    'diffmotif.R'
+    'GenomeInfo.R'
 Packaged: 2013-07-31 22:11:50 UTC; bhasinj
