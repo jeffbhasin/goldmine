@@ -6,18 +6,18 @@
 
 # =============================================================================
 # Packages and Globals
-library(ShortRead)
-library(plyr)
-library(reshape)
-library(foreach)
-library(stringr)
-library(ggplot2)
-library(gridExtra)
-library(Matching) # for Match()
-library(rms)
-library(doMC)
-library(gplots) # for heatmap.2()
-library(VennDiagram)
+#library(ShortRead)
+#library(plyr)
+#library(reshape)
+#library(foreach)
+#library(stringr)
+#library(ggplot2)
+#library(gridExtra)
+#library(Matching) # for Match()
+#library(rms)
+#library(doMC)
+#library(gplots) # for heatmap.2()
+#library(VennDiagram)
 # =============================================================================
 
 # =============================================================================
@@ -120,7 +120,7 @@ getSeqMeta <- function(ranges,bsgenome,genome,cachedir)
 	name <- names(seq)
 	#name <- 1:length(seq)
 	size <- width(seq)
-	gc <- getGC(seq)
+	gc <- goldmine:::getGC(seq)
 
 	# add chr/start/end fields parsed from sequence name
 	#name.split <- data.frame(do.call('rbind', strsplit(as.character(name),'-',fixed=TRUE)))
@@ -135,14 +135,14 @@ getSeqMeta <- function(ranges,bsgenome,genome,cachedir)
 	# Add extra variables from annotation
 	seq.ranges <- gr
 
-	repeatPer <- getRepeatPercentFast(seq.ranges,genome,cachedir)
+	repeatPer <- goldmine:::getRepeatPercentFast(seq.ranges,genome,cachedir)
 	sizeLog <- log10(size)
 	#distTSS <- getDistTSS(seq.ranges,ann)
 	#distTSE <- getDistTSE(seq.ranges,ann)
 	#distTSSCenter <- getDistTSSCenter(seq.ranges,ann)
 	#distTSECenter <- getDistTSECenter(seq.ranges,ann)
-	distTSSCenterLogX1 <- log10(getDistTSSCenter(seq.ranges,ann)+1)
-	distTSECenterLogX1 <- log10(getDistTSECenter(seq.ranges,ann)+1)
+	distTSSCenterLogX1 <- log10(goldmine:::getDistTSSCenter(seq.ranges,genome,cachedir)+1)
+	distTSECenterLogX1 <- log10(getDistTSECenter(seq.ranges,genome,cachedir)+1)
 	freqCpG <- getFreqCpG(seq)
 
 	# combine into our covariate dataframe
@@ -454,7 +454,7 @@ calcEnrichmentBinom <- function(seq1.counts,seq1.nSeqs,seq2.counts,seq2.nSeqs)
 # -----------------------------------------------------------------------------
 #' Generate counts of motif occurrences in each sequence
 #'
-#' @param fimo.out dataframe from \code\link{readFIMO}}} dataframe object
+#' @param fimo.out dataframe from \code{\link{readFIMO}} dataframe object
 #' @param q.cutoff only count a motif if the q-value is less than this cutoff
 #'
 #' @return matrix with pairwise counts of each motif and each sequence

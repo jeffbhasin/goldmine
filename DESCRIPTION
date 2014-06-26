@@ -17,16 +17,9 @@ Depends:
     httr,
     RCurl,
     plyr,
-	data.table,
+    data.table,
     R.utils
 Suggests:
     testthat,
     roxygen2
-Collate:
-    'goldmine-package.r'
-    'ucsc.R'
-    'annotate.R'
-    'enrichment.r'
-    'diffmotif.R'
-    'GenomeInfo.R'
 Packaged: 2013-07-31 22:11:50 UTC; bhasinj

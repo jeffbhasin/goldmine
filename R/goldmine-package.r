@@ -2,5 +2,5 @@
 #'
 #' @name goldmine-package
 #' @docType package
-#' @import GenomicRanges Biostrings stringr httr R.utils
+#' @import GenomicRanges Biostrings stringr httr R.utils Matching rms grid gridExtra doMC foreach ggplot2 RColorBrewer reshape
 NULL

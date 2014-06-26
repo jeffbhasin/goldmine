@@ -363,7 +363,7 @@ getDistTSS <- function(regions.ranges,ann)
 }
 
 #calculates from the center of the DMS rather than the nearest outer bound
-getDistTSSCenter <- function(regions.ranges,ann)
+getDistTSSCenter <- function(regions.ranges, genome, cachedir)
 {
 	# create ranges object with just the TSS
 	# need to use txEnd for genes on the "-" strand
@@ -388,7 +388,7 @@ getDistTSSCenter <- function(regions.ranges,ann)
 	dtss[,3]
 }
 
-getDistTSE <- function(regions.ranges,ann)
+getDistTSE <- function(regions.ranges,genome,cachedir)
 {
 	# create ranges object with just the TSS
 	# need to use txEnd for genes on the "-" strand
@@ -410,7 +410,7 @@ getDistTSE <- function(regions.ranges,ann)
 	dtse[,3]
 }
 
-getDistTSECenter <- function(regions.ranges,ann)
+getDistTSECenter <- function(regions.ranges,genome,cachedir)
 {
 	# create ranges object with just the TSS
 	# need to use txEnd for genes on the "-" strand
