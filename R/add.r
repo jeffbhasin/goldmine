@@ -74,10 +74,25 @@ sortDT <- function(obj)
 {
 	obj <- makeDT(obj)
 	if(sum(c("chr", "start", "end") %in% colnames(obj))!=3){stop("Could not find columns named \"chr\", \"start\", and \"end\" in input data.frame")}
-	require(gtools)
 	chrorder <- mixedsort(unique(obj$chr))
 	obj$chr <- factor(obj$chr,levels=chrorder)
 	obj <- obj[order(obj$chr,obj$start,obj$end),]
+	return(obj)
+}
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+#' Sort a data.frame, data.table, or GRanges by chr (accounting for mixed string and numeric names), start, end and return a GRanges
+#'
+#' @param obj A data.frame, data.table, or GRanges
+#' @export
+sortGRanges <- function(obj)
+{
+	obj <- makeGRanges(obj)
+	chrorder <- mixedsort(unique(seqnames(obj)))
+	seqlevels(obj) <- as.character(chrorder)
+	obj <- obj[order(start(obj),end(obj))]
+	obj <- obj[order(seqnames(obj))]
 	return(obj)
 }
 # -----------------------------------------------------------------------------
