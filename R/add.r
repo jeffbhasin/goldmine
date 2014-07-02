@@ -66,6 +66,23 @@ addNearest <- function(query,subject,id="name",prefix="subject")
 # --------------------------------------------------------------------
 
 # -----------------------------------------------------------------------------
+#' Sort a data.frame, data.table, or GRanges by chr (accounting for mixed string and numeric names), start, end and return a data.table
+#'
+#' @param obj A data.frame, data.table, or GRanges
+#' @export
+sortDT <- function(obj)
+{
+	obj <- makeDT(obj)
+	if(sum(c("chr", "start", "end") %in% colnames(obj))!=3){stop("Could not find columns named \"chr\", \"start\", and \"end\" in input data.frame")}
+	require(gtools)
+	chrorder <- mixedsort(unique(obj$chr))
+	obj$chr <- factor(obj$chr,levels=chrorder)
+	obj <- obj[order(obj$chr,obj$start,obj$end),]
+	return(obj)
+}
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 #' Add columns with distance to nearest gene and gene symbol(s)
 #'
 #' @param query Genomic regions to find nearest genes for as a GRanges, data.frame, or data.table with the columns "chr", "start", and "end"
