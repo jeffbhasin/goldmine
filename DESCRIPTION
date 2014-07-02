@@ -19,7 +19,7 @@ Depends:
     plyr,
     data.table,
     R.utils,
-	gtools
+    gtools
 Suggests:
     testthat,
     roxygen2
