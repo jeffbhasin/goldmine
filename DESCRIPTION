@@ -18,7 +18,8 @@ Depends:
     RCurl,
     plyr,
     data.table,
-    R.utils
+    R.utils,
+	gtools
 Suggests:
     testthat,
     roxygen2
