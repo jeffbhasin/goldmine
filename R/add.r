@@ -21,7 +21,7 @@ makeDT <- function(obj)
 	} else if(myclass=="data.table")
 	{
 		# Already a DT, just return it back
-		return(obj)
+		return(data.table(obj))
 	} else
 	{
 		# Some bad input, throw error
@@ -56,7 +56,7 @@ addNearest <- function(query,subject,id="name",prefix="subject")
 	fo <- data.table(as.data.frame(nearest(query.gr,subject.gr,select="all")))
 	fo$name <- subject.dt[fo$subjectHits,][[id]]
 	fo <- fo[,list(name2=toString(unique(name))),by=queryHits]
-	matched <- data.frame(id=1:length(query),name=NA)
+	matched <- data.frame(id=1:length(query.gr),name=NA)
 	matched[fo$queryHits,]$name <- fo$name2
 
 	query.dt[,eval(paste(prefix,"nearest",sep=".")):=matched$name]
