@@ -54,7 +54,7 @@ addNearest <- function(query,subject,id="name",prefix="subject")
 
 	# Get names
 	fo <- data.table(as.data.frame(nearest(query.gr,subject.gr,select="all")))
-	fo$name <- subject.dt[fo$queryHits,][[id]]
+	fo$name <- subject.dt[fo$subjectHits,][[id]]
 	fo <- fo[,list(name2=toString(unique(name))),by=queryHits]
 	matched <- data.frame(id=1:length(query),name=NA)
 	matched[fo$queryHits,]$name <- fo$name2
