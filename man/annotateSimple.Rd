@@ -3,7 +3,7 @@
 \alias{annotateSimple}
 \title{Annotate regions in mutually exclusive genic, flanking, and intergenic categories}
 \usage{
-annotateSimple(query, genome, cachedir = NULL, flank.bp = 1000,
+annotateSimple(query, genes, genome, cachedir, flank.bp = 1000,
   gene.names = TRUE)
 }
 \arguments{
