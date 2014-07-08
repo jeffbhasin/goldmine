@@ -199,6 +199,7 @@ annotateGeneModel <- function(query, genome, cachedir=NULL, flank.bp=1000)
 	kgXref <- getUCSCTable("kgXref", genome, cachedir)
 	knownCanonical <- getUCSCTable("knownCanonical", genome, cachedir)
 	chromInfo <- getUCSCTable("chromInfo", genome, cachedir)
+	chromInfo$chr <- chromInfo$chrom
 
 	# join in gene symbols
 	names(kgXref)[1] <- "name"
@@ -289,8 +290,8 @@ annotateGeneModel <- function(query, genome, cachedir=NULL, flank.bp=1000)
 	for(j in 1:nrow(kg))
 	{
 		x <- kg[j,]
-		es <- unlist(str_split(x$exonStart,","))
-		ee <- unlist(str_split(x$exonEnd,","))
+		es <- unlist(str_split(x$exonStarts,","))
+		ee <- unlist(str_split(x$exonEnds,","))
 
 		if(x$exonCount > 1)
 		{
@@ -425,6 +426,7 @@ reportGeneModel <- function(query, genome, cachedir=NULL, flank.bp=1000)
 	kgXref <- getUCSCTable("kgXref", genome, cachedir)
 	knownCanonical <- getUCSCTable("knownCanonical", genome, cachedir)
 	chromInfo <- getUCSCTable("chromInfo", genome, cachedir)
+	chromInfo$chr <- chromInfo$chrom
 
 	# join in gene symbols
 	names(kgXref)[1] <- "name"
@@ -588,8 +590,8 @@ reportGeneModel <- function(query, genome, cachedir=NULL, flank.bp=1000)
 	for(j in 1:nrow(kg))
 	{
 		x <- kg[j,]
-		es <- unlist(str_split(x$exonStart,","))
-		ee <- unlist(str_split(x$exonEnd,","))
+		es <- unlist(str_split(x$exonStarts,","))
+		ee <- unlist(str_split(x$exonEnds,","))
 
 		if(x$exonCount > 1)
 		{
