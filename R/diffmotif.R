@@ -32,7 +32,7 @@ genColors <- function(n, rand=FALSE)
 	# Brewer's qualitative palette "Set1" only has 9 values
 	# Extrapolate from these to create palettes of any size
 
-	pal <- colorRampPalette(brewer.pal(9,"Set1"))(n)
+	pal <- colorRampPalette(RColorBrewer::brewer.pal(9,"Set1"))(n)
 	if(rand==TRUE){pal <- sample(pal)}
 
 	pal
@@ -45,7 +45,7 @@ genColors <- function(n, rand=FALSE)
 # Output:
 ggplot.clean <- function()
 {
-	theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), legend.key.size = unit(0.8, "lines"), axis.line = element_line(colour = "grey50"))
+	theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), legend.key.size = grid::unit(0.8, "lines"), axis.line = element_line(colour = "grey50"))
 }
 # -----------------------------------------------------------------------------
 
@@ -180,13 +180,13 @@ drawBackgroundSetPropensity <- function(target.seq, target.meta, pool.seq, pool.
 	all.meta.shuffle <- all.meta[start.order,]
 
 	# run logistic model
-	lrm.out <- lrm(formula, data=all.meta.shuffle)
+	lrm.out <- rms::lrm(formula, data=all.meta.shuffle)
 
 	# obtain values
 	lrm.out.fitted <- rms:::predict.lrm(lrm.out,type="fitted")
 
 	# match
-	rr <- Match(Y=NULL, Tr=all.meta.shuffle$treat, X=lrm.out.fitted, M=1, version="standard", replace=FALSE)
+	rr <- Matching::Match(Y=NULL, Tr=all.meta.shuffle$treat, X=lrm.out.fitted, M=1, version="standard", replace=FALSE)
 	#summary(rr)
 
 	# make new sequence set
@@ -225,7 +225,7 @@ plotCovarHistograms <- function(seq.meta,cols)
 	ggplot.hist <- function(h)
 	{
 		plot.data <- data.frame(bin=h$mids,freq=h$count/sum(h$count))
-		ggplot(plot.data, aes(x=bin,y=freq)) + geom_bar(data=plot.data, stat="identity",alpha=0.8) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), legend.key.size = unit(0.8, "lines"), axis.line = element_line(colour = "grey50"))
+		ggplot(plot.data, aes(x=bin,y=freq)) + geom_bar(data=plot.data, stat="identity",alpha=0.8) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), legend.key.size = grid::unit(0.8, "lines"), axis.line = element_line(colour = "grey50"))
 	}
 
 	p <- list()
@@ -255,29 +255,33 @@ plotCovarHistogramsOverlap <- function(seq1.meta,seq2.meta,cols,plot.ncols=3, ma
 	name1 <- "Target"
 	name2 <- "Reference"
 
-	breaks <- foreach(i=1:length(cols)) %do%
+	getbreaks <- function(i)
 	{
 		scale.max <- max(c(seq1.meta[,cols[i]],seq2.meta[,cols[i]]))
 		scale.min <- min(c(seq1.meta[,cols[i]],seq2.meta[,cols[i]]))
 		scale.bins <- 20
 		seq(from=scale.min,to=scale.max,length.out=scale.bins)
 	}
+	breaks <- lapply(1:length(cols),getbreaks)
 
 	# calculate histograms
-	hists1 <- foreach(i=1:length(cols)) %do%
+	hist1 <- function(i)
 	{
 		hist(seq1.meta[,cols[i]],breaks=breaks[[i]],plot=FALSE)
 	}
-	hists2 <- foreach(i=1:length(cols)) %do%
+	hists1 <- lapply(1:length(cols),hist1)
+
+	hist2 <- function(i)
 	{
 		hist(seq2.meta[,cols[i]],breaks=breaks[[i]],plot=FALSE)
 	}
+	hists2 <- lapply(1:length(cols),hist2)
 
 	ggplot.hist.overlap <- function(h1,h2)
 	{
 		plot.data <- data.frame(bin=h1$mids,freq=h1$count/sum(h1$count),seq=name1)
 		plot.data <- rbind(plot.data,data.frame(bin=h2$mids,freq=h2$count/sum(h2$count),seq=name2))
-		ggplot(plot.data, aes(x=bin,y=freq,fill=seq)) + geom_bar(data=subset(plot.data,seq == name1), stat="identity",alpha=0.5) + geom_bar(data=subset(plot.data,seq == name2), stat="identity",alpha=0.5) + scale_fill_manual("", values = c("#007FFF","#FF007F")) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), legend.key.size = unit(0.8, "lines"), axis.line = element_line(colour = "grey50"))
+		ggplot(plot.data, aes(x=bin,y=freq,fill=seq)) + geom_bar(data=subset(plot.data,seq == name1), stat="identity",alpha=0.5) + geom_bar(data=subset(plot.data,seq == name2), stat="identity",alpha=0.5) + scale_fill_manual("", values = c("#007FFF","#FF007F")) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), legend.key.size = grid::unit(0.8, "lines"), axis.line = element_line(colour = "grey50"))
 	}
 
 	p1 <- ggplot.hist.overlap(hists1[[1]], hists2[[1]]) + theme(legend.position="bottom")
@@ -292,8 +296,8 @@ plotCovarHistogramsOverlap <- function(seq1.meta,seq2.meta,cols,plot.ncols=3, ma
 	}
 	p <- c(p,list(ncol=plot.ncols, main=main))
 
-	g <- do.call(arrangeGrob,p)
-	grid.arrange(g, legend, heights=unit(c(7.5,0.5),"in"),nrow=2,ncol=1)
+	g <- do.call(gridExtra::arrangeGrob,p)
+	gridExtra::grid.arrange(g, legend, heights=grid::unit(c(7.5,0.5),"in"),nrow=2,ncol=1)
 }
 # -----------------------------------------------------------------------------
 
@@ -310,18 +314,18 @@ plotCovarHistogramsOverlap <- function(seq1.meta,seq2.meta,cols,plot.ncols=3, ma
 #' @export
 plotCovarQQ <- function(orig.meta,list.meta,cols,plot.ncols=3)
 {
-	ggplot.qq <- function(d)
+	ggplot.qq <- function(d,i)
 	{
 		ggplot(d) + geom_point(aes(x=x, y=y,color=Sequences), size=2, stat = "identity", position = "identity", ) + ggplot.clean() + labs(x="Target", y="Background") + geom_abline(slope = 1, intercept=0) + labs(title=names(orig.meta)[cols[i]]) + scale_colour_manual(values = genColors(length(list.meta)))
 	}
 
-	plot.data <- foreach(i=1:length(cols)) %do%
+	getplotdata <- function(i)
 	{
-		foreach(u=1:length(list.meta),.combine="rbind") %do%
-		{
-			data.frame(as.data.frame(qqplot(orig.meta[,cols[i]], list.meta[[u]][,cols[i]], plot.it=FALSE)),Sequences=names(list.meta)[u])
-		}
+		ret <- lapply(1:length(list.meta),function(u) data.frame(as.data.frame(qqplot(orig.meta[,cols[i]], list.meta[[u]][,cols[i]], plot.it=FALSE)),Sequences=names(list.meta)[u]))
+		ret <- do.call("rbind",ret)
+		ret
 	}
+	plot.data <- lapply(1:length(cols),getplotdata)
 
 	p1 <- ggplot.qq(plot.data[[1]]) + theme(legend.position="right")
 	tmp <- ggplot_gtable(ggplot_build(p1))
@@ -332,13 +336,13 @@ plotCovarQQ <- function(orig.meta,list.meta,cols,plot.ncols=3)
 	for(i in 1:length(cols))
 	{
 		d <- plot.data[[i]]
-  		p[[i]] <- ggplot.qq(d) + theme(legend.position="none")
+  		p[[i]] <- ggplot.qq(d,i) + theme(legend.position="none")
 	}
 	p <- c(p,list(ncol=plot.ncols))
 
-	g <- do.call(arrangeGrob,p)
+	g <- do.call(gridExtra::arrangeGrob,p)
 	#grid.arrange(g, legend, widths=unit(c(7.5,0.5),"in"), main="QQ Plots",nrow=1,ncol=2)
-	grid.arrange(g, main="QQ Plots")
+	gridExtra::grid.arrange(g, main="QQ Plots")
 }
 # -----------------------------------------------------------------------------
 
@@ -361,17 +365,18 @@ plotCovarDistance <- function(orig.meta,list.meta,cols)
 	}
 
 	# calculate distances for each variable
-	dists <- foreach(i=1:length(list.meta),.combine="rbind") %do%
+	getdists <- function(i)
 	{
-		vec <- foreach(u=1:length(cols),.combine="c") %do%
-		{		
-			stddist(orig.meta[,cols[u]],list.meta[[i]][,cols[u]])
-		}
+		ret <- sapply(1:length(cols),function(u) stddist(orig.meta[,cols[u]],list.meta[[i]][,cols[u]]))
+		ret
 	}
+	dists <- lapply(1:length(list.meta),getdists)
+	dists <- do.call("rbind", dists)
+
 	colnames(dists) <- names(orig.meta)[cols]
 	rownames(dists) <- names(list.meta)
 
-	plot.data <- melt(dists)
+	plot.data <- reshape::melt.matrix(dists)
 	names(plot.data) <- c("matching","variable","stddist")
 
 	plot.data.sub <- plot.data[plot.data$matching=="pool",]
@@ -384,7 +389,7 @@ plotCovarDistance <- function(orig.meta,list.meta,cols)
 
 	plot.data$variable <- factor(plot.data$variable,levels=mylevs)
 
-	ggplot(plot.data, aes(x=variable,y=stddist,col=matching)) + geom_point(data=plot.data,size=3) + theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_line(linetype=3, colour="grey50"), panel.grid.minor = element_blank(), panel.background = element_blank(), legend.key.size = unit(0.8, "lines"), axis.line = element_line(colour = "grey50"), axis.text=element_text(colour="black")) + geom_abline(intercept=0,slope=0,col="grey50") + coord_flip() + labs(main="Covariate Balance",y="Standardized Distance") + scale_colour_manual(values = genColors(length(list.meta)))
+	ggplot(plot.data, aes(x=variable,y=stddist,col=matching)) + geom_point(data=plot.data,size=3) + theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_line(linetype=3, colour="grey50"), panel.grid.minor = element_blank(), panel.background = element_blank(), legend.key.size = grid::unit(0.8, "lines"), axis.line = element_line(colour = "grey50"), axis.text=element_text(colour="black")) + geom_abline(intercept=0,slope=0,col="grey50") + coord_flip() + labs(main="Covariate Balance",y="Standardized Distance") + scale_colour_manual(values = genColors(length(list.meta)))
 }
 # -----------------------------------------------------------------------------
 

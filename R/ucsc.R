@@ -131,7 +131,7 @@ syncUCSCTable <- function(table, genome, url, cachedir)
 	url.dl.sql <- paste(url, genome , "/database/",table,".sql",sep="")
 
 	# Check that these URIs point to actual files (i.e. this table exists and we could download it if we want to)
-	if((!url.exists(url.dl.txt))|(!url.exists(url.dl.sql))) {stop(paste("Error: Could not open table data URLs (",url.dl.txt," and ",url.dl.sql,"). Is the table name correct?",sep=""))}
+	if((!RCurl::url.exists(url.dl.txt))|(!RCurl::url.exists(url.dl.sql))) {stop(paste("Error: Could not open table data URLs (",url.dl.txt," and ",url.dl.sql,"). Is the table name correct?",sep=""))}
 
 	# Create genome directory if it does not exist
 	cachedir.dir.genome <- file.path(cachedir,genome)
@@ -159,7 +159,7 @@ syncUCSCTable <- function(table, genome, url, cachedir)
 	}
 
 	# Get the remote file mod time from the HTTP header
-	mtime.remote <- HEAD(url.dl.txt)$headers$`last-modified`
+	mtime.remote <- httr::HEAD(url.dl.txt)$headers$`last-modified`
 	#mtime.remote <- strptime(mtime.remote, format="%a, %d %b %Y %T", tz="GMT")
 
 	# Re-download only if this mod time is different than our own
