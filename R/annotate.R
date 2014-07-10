@@ -355,6 +355,12 @@ annotateGeneModel <- function(query, genes, genome, cachedir=NULL, flank.bp=1000
 
 	utr3.gr <- suppressWarnings(c(with(kg.p, GRanges(seqnames=kg.p$chr, ranges=IRanges(start=cdsEnd, end=end))),with(kg.m, GRanges(seqnames=kg.m$chr, ranges=IRanges(start=start, end=cdsStart)))))
 
+	# Make promoter regions
+	genes.gr <- makeGRanges(genes,strand=T)
+	seqlengths(genes.gr) <- chromInfo[match(seqlevels(genes.gr), chromInfo$chrom),]$size
+	prom.gr <- reduce(promoters(genes.gr,upstream=1000,downstream=500))
+	strand(prom.gr) <- "*"
+
 	# Make mutually exclusive if option is set (?)
 
 	# write BED files to make sure we have the sets correct
@@ -374,12 +380,15 @@ annotateGeneModel <- function(query, genes, genome, cachedir=NULL, flank.bp=1000
 
 	# annotate with %
 	print("Computing overlaps with gene model range sets")
-	ann <- data.frame(intergenic.per=calcPercentOverlap(input.gr, reduce(intergenic.gr)), utr5.per=calcPercentOverlap(input.gr, reduce(utr5.gr)), utr3.per=calcPercentOverlap(input.gr, reduce(utr3.gr)), exon.per=calcPercentOverlap(input.gr, reduce(exon.gr)), intron.per=calcPercentOverlap(input.gr, reduce(intron.gr)), flank.us.per=calcPercentOverlap(input.gr, reduce(flank.us.gr)), flank.ds.per=calcPercentOverlap(input.gr, reduce(flank.ds.gr)))
+	ann <- data.frame(intergenic.per=calcPercentOverlap(input.gr, reduce(intergenic.gr)), promoter.per=calcPercentOverlap(input.gr, prom.gr), utr5.per=calcPercentOverlap(input.gr, reduce(utr5.gr)), utr3.per=calcPercentOverlap(input.gr, reduce(utr3.gr)), exon.per=calcPercentOverlap(input.gr, reduce(exon.gr)), intron.per=calcPercentOverlap(input.gr, reduce(intron.gr)), flank.us.per=calcPercentOverlap(input.gr, reduce(flank.us.gr)), flank.ds.per=calcPercentOverlap(input.gr, reduce(flank.ds.gr)))
 
 	# call categories
 	print("Calling categories")
 	ann$itr <- NA
 	ann[ann$intergenic.per>0,]$itr <- "Intergenic"
+
+	ann$prom <- NA
+	ann[ann$promoter.per>0,]$prom <- "Promoter"
 
 	ann$utr5 <- NA
 	ann[ann$utr5.per>0,]$utr5 <- "5' UTR"
@@ -399,13 +408,14 @@ annotateGeneModel <- function(query, genes, genome, cachedir=NULL, flank.bp=1000
 	ann$fld <- NA
 	ann[ann$flank.ds.per>0,]$fld <- "3' Flank"
 
-	ann$call <- paste(ann$itr, ann$utr5, ann$utr3, ann$exo, ann$int, ann$flu, ann$fld, sep="+")
+	ann$call <- paste(ann$itr, ann$prom, ann$utr5, ann$utr3, ann$exo, ann$int, ann$flu, ann$fld, sep="+")
 	ann$call <- str_replace_all(ann$call,"NA","")
 	ann$call <- str_replace_all(ann$call,"\\++","\\+")
 	ann$call <- str_replace_all(ann$call,"^\\+","")
 	ann$call <- str_replace_all(ann$call,"\\+$","")
 
 	ann$itr <- NULL
+	ann$prom <- NULL
 	ann$utr5 <- NULL
 	ann$utr3 <- NULL
 	ann$exo <- NULL
