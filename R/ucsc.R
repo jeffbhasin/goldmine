@@ -74,7 +74,7 @@ getUCSCTable <- function(table, genome, cachedir=NULL, version="latest", sync=TR
 		url.dl.sql <- paste(url, genome , "/database/",table,".sql",sep="")
 
 		# Check that these URIs point to actual files (i.e. this table exists and we could download it if we want to)
-		if((!url.exists(url.dl.txt))|(!url.exists(url.dl.sql))) {stop(paste("Error: Could not open table data URLs (",url.dl.txt," and ",url.dl.sql,"). Is the table name correct?",sep=""))}
+		if((!RCurl::url.exists(url.dl.txt))|(!RCurl::url.exists(url.dl.sql))) {stop(paste("Error: Could not open table data URLs (",url.dl.txt," and ",url.dl.sql,"). Is the table name correct?",sep=""))}
 
 		# Get tempfiles
 		cachedir.txt.gz <- tempfile()
@@ -86,7 +86,7 @@ getUCSCTable <- function(table, genome, cachedir=NULL, version="latest", sync=TR
 		download.file(url.dl.sql, cachedir.sql, quiet=FALSE)
 
 		# Gunzip the file
-		gunzip(cachedir.txt.gz, cachedir.txt, overwrite=TRUE, remove=TRUE)
+		R.utils::gunzip(cachedir.txt.gz, cachedir.txt, overwrite=TRUE, remove=TRUE)
 	}
 
 	# We can now open the data from the TXT
@@ -172,7 +172,7 @@ syncUCSCTable <- function(table, genome, url, cachedir)
 		download.file(url.dl.txt, cachedir.file.txt, quiet=FALSE)
 
 		# Gunzip the file
-		gunzip(cachedir.file.txt, overwrite=TRUE, remove=TRUE)
+		R.utils::gunzip(cachedir.file.txt, overwrite=TRUE, remove=TRUE)
 
 		# I can't get any R downloaders to save the file with the server's modified date, so I am creating a file called table.latest.txt that stores the last modified string rather than working off what the filesystem reports
 		# This will also help with an issue where MacOSX was touching these times and messing up the sync function!
