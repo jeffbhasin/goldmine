@@ -184,7 +184,7 @@ annotateSimple <- function(query, genes, genome, cachedir, flank.bp=1000, gene.n
 #' @param flank.bp The size in base pairs for the flanking category.
 #' @return A data.frame with all rows and columns of the query data.frame with the annotation columns added.
 #' @export
-annotateGeneModel <- function(query, genome, cachedir=NULL, flank.bp=1000)
+annotateGeneModel <- function(query, genes, genome, cachedir=NULL, flank.bp=1000)
 {
 	# Check that query has the needed columns
 	if(sum(c("chr", "start", "end") %in% colnames(query))!=3)
@@ -195,20 +195,22 @@ annotateGeneModel <- function(query, genome, cachedir=NULL, flank.bp=1000)
 	print("Generating annotation regions from UCSC knownGene table")
 
 	# Load the UCSC tables we will need
-	knownGene <- getUCSCTable("knownGene", genome, cachedir)
-	kgXref <- getUCSCTable("kgXref", genome, cachedir)
-	knownCanonical <- getUCSCTable("knownCanonical", genome, cachedir)
+	#knownGene <- getUCSCTable("knownGene", genome, cachedir)
+	#kgXref <- getUCSCTable("kgXref", genome, cachedir)
+	#knownCanonical <- getUCSCTable("knownCanonical", genome, cachedir)
 	chromInfo <- getUCSCTable("chromInfo", genome, cachedir)
 	chromInfo$chr <- chromInfo$chrom
 
 	# join in gene symbols
-	names(kgXref)[1] <- "name"
-	kg <- join(knownGene, kgXref, by="name", type="left", match="first")
+	#names(kgXref)[1] <- "name"
+	#kg <- join(knownGene, kgXref, by="name", type="left", match="first")
 
 	# join in canonical annotation (largest coding seq from nearest cluster)
-	kgCanon.sub <- data.frame(name=knownCanonical$transcript,canonical="1",stringsAsFactors=FALSE)
-	kg <- join(kg,kgCanon.sub, by="name", type="left", match="first")
-	kg[is.na(kg$canonical),]$canonical <- 0
+	#kgCanon.sub <- data.frame(name=knownCanonical$transcript,canonical="1",stringsAsFactors=FALSE)
+	#kg <- join(kg,kgCanon.sub, by="name", type="left", match="first")
+	#kg[is.na(kg$canonical),]$canonical <- 0
+
+	kg <- makeDT(genes)
 
 	# add row number field for future rejoins
 	kg$srow <- 1:nrow(kg)
@@ -221,7 +223,7 @@ annotateGeneModel <- function(query, genome, cachedir=NULL, flank.bp=1000)
 	seqlengths(input.gr) <- chromInfo[match(names(seqlengths(input.gr)), chromInfo$chr),]$size
 
 	# Make genic GRanges
-	genic.gr <- with(kg, GRanges(seqnames=chrom, ranges=IRanges(start=txStart+1,end=txEnd)))
+	genic.gr <- with(kg, GRanges(seqnames=chr, ranges=IRanges(start=start,end=end)))
 	genic.gr <- reduce(genic.gr)
 	seqlengths(genic.gr) <- chromInfo[match(names(seqlengths(genic.gr)), chromInfo$chr),]$size
 
@@ -229,9 +231,9 @@ annotateGeneModel <- function(query, genome, cachedir=NULL, flank.bp=1000)
 	kg.proms.p <- kg[kg$strand=="+",]
 	kg.proms.m <- kg[kg$strand=="-",]
 
-	genic.p.gr <- with(kg.proms.p, GRanges(seqnames=chrom, ranges=IRanges(start=txStart+1, end=txEnd)))
+	genic.p.gr <- with(kg.proms.p, GRanges(seqnames=chr, ranges=IRanges(start=start, end=end)))
 	seqlengths(genic.p.gr) <- chromInfo[match(names(seqlengths(genic.p.gr)), chromInfo$chr),]$size
-	genic.m.gr <- with(kg.proms.m, GRanges(seqnames=chrom, ranges=IRanges(start=txStart+1, end=txEnd)))
+	genic.m.gr <- with(kg.proms.m, GRanges(seqnames=chr, ranges=IRanges(start=start, end=end)))
 	seqlengths(genic.m.gr) <- chromInfo[match(names(seqlengths(genic.m.gr)), chromInfo$chr),]$size
 
 	flank.us.p <- suppressWarnings(flank(genic.p.gr, flank.bp, start=T))
@@ -262,9 +264,30 @@ annotateGeneModel <- function(query, genome, cachedir=NULL, flank.bp=1000)
 	exonends <- str_replace(kg$exonEnds,",$","")
 	exonendvec <- as.numeric(unlist(str_split(exonends,",")))
 
-	exonchrs <- rep(kg$chrom, kg$exonCount)
+	exonchrs <- rep(kg$chr, kg$exonCount)
 
 	exon.gr <- GRanges(seqnames=exonchrs, ranges=IRanges(start=exonstartvec,end=exonendvec))
+
+	# New intron method
+	message("Computing introns...")
+
+	exontrans <- rep(kg$isoform.id, kg$exonCount)
+	int.dt <- data.table(iso1=c(NA,exontrans),start1=c(NA,exonstartvec),end1=c(NA,exonendvec))
+	# cbind with shifted down by 1 version of the same
+
+	# build table where exon starts and ends are offset - this way we get the end of exon on the same row with the start of the next exon
+	# this creates situations where we have dangling pairs of worthless starts/ends (the exon end from previous transcript and exon starts from the next - neither of which we need to define introns)
+	# I'll remove these cases by checking for mismatched in the isoform ID
+	# Turns out isoform IDs aren't unique in refseq! So I'm going to index them myself (since we can assume that each row is an isoform and index by that) - easy, just use srow
+
+	exontrans <- rep(kg$srow, kg$exonCount)
+
+	int.dt <- data.table(chr=exonchrs[-1],startiso=exontrans[-1],exonstart=exonstartvec[-1],endiso=exontrans[1:(length(exontrans)-1)],exonend=exonendvec[1:(length(exonendvec)-1)])
+	tron2 <- int.dt[startiso==endiso,]
+	intron.gr <- GRanges(tron2$chr,IRanges(tron2$exonend,tron2$exonstart-1))
+
+	# verify identity with the old method
+	#table(introns2.gr==intron.gr)
 
 	# Make introns
 
@@ -284,53 +307,53 @@ annotateGeneModel <- function(query, genome, cachedir=NULL, flank.bp=1000)
 
 	## LOOP method
 	# We expect to find the number of exons minus 1 for each gene
-	print("Computing introns, please wait...")
-	intron.mat <- matrix(nrow=sum(kg$exonCount-1), ncol=5)
-	r <- 0 #row counter, so we can insert into prealloc matrix for speed boost
-	for(j in 1:nrow(kg))
-	{
-		x <- kg[j,]
-		es <- unlist(str_split(x$exonStarts,","))
-		ee <- unlist(str_split(x$exonEnds,","))
+	#print("Computing introns, please wait...")
+	#intron.mat <- matrix(nrow=sum(kg$exonCount-1), ncol=5)
+	#r <- 0 #row counter, so we can insert into prealloc matrix for speed boost
+	#for(j in 1:nrow(kg))
+	#{
+	#	x <- kg[j,]
+	#	es <- unlist(str_split(x$exonStarts,","))
+	#	ee <- unlist(str_split(x$exonEnds,","))
 
-		if(x$exonCount > 1)
-		{
-			for(i in 1:(x$exonCount-1))
-			{
-				r <- r+1
-				intron.mat[r,1] <- j
-				intron.mat[r,2] <- i
-				intron.mat[r,3] <- 0
-				intron.mat[r,4] <- as.numeric(ee[i])
-				intron.mat[r,5] <- as.numeric(es[i+1])
+	#	if(x$exonCount > 1)
+	#	{
+	#		for(i in 1:(x$exonCount-1))
+	#		{
+	#			r <- r+1
+	#			intron.mat[r,1] <- j
+	#			intron.mat[r,2] <- i
+	#			intron.mat[r,3] <- 0
+	#			intron.mat[r,4] <- as.numeric(ee[i])
+	#			intron.mat[r,5] <- as.numeric(es[i+1])
 
 				#new <- c(x$name, paste("Intron",i,sep=" "), x$chrom, ee[i],es[i+1])
 				#intron.df <- rbind(intron.df, new)
 				#intron.mat[j+1,] <- new
 				#print(paste(x$name, paste("Intron",i,sep=" "), x$chrom, ee[i],es[i+1],sep=","))
-			}
-		}
-		if((j %% 10000)==0)
-		{
-			print(paste("Done with ",j, " genes, found ", r, " introns",sep=""))
-		}
-	}
+	#		}
+	#	}
+	#	if((j %% 10000)==0)
+	#	{
+	#		print(paste("Done with ",j, " genes, found ", r, " introns",sep=""))
+	#	}
+	#}
 
-	intron.gr <- GRanges(seqnames=kg[intron.mat[,1],]$chrom, ranges=IRanges(start=intron.mat[,4], end=intron.mat[,5]))
+	#intron.gr <- GRanges(seqnames=kg[intron.mat[,1],]$chr, ranges=IRanges(start=intron.mat[,4], end=intron.mat[,5]))
 
 	# Make 5' UTR
 	# distance between txStart and cdsStart for + genes
 	# distance between txEnd and cdsEnd for - genes
-	kg.p <- kg[(kg$strand=="+")&(kg$txStart!=kg$cdsStart)&(kg$cdsEnd!=kg$cdsStart),]
-	kg.m <- kg[(kg$strand=="-")&(kg$txEnd!=kg$cdsEnd)&(kg$cdsEnd!=kg$cdsStart),]
+	kg.p <- kg[(kg$strand=="+")&(kg$start!=kg$cdsStart)&(kg$cdsEnd!=kg$cdsStart),]
+	kg.m <- kg[(kg$strand=="-")&(kg$end!=kg$cdsEnd)&(kg$cdsEnd!=kg$cdsStart),]
 
-	utr5.gr <- suppressWarnings(c(with(kg.p, GRanges(seqnames=kg.p$chrom, ranges=IRanges(start=txStart+1, end=cdsStart+1))),with(kg.m, GRanges(seqnames=kg.m$chrom, ranges=IRanges(start=cdsEnd, end=txEnd)))))
+	utr5.gr <- suppressWarnings(c(with(kg.p, GRanges(seqnames=kg.p$chr, ranges=IRanges(start=start, end=cdsStart))),with(kg.m, GRanges(seqnames=kg.m$chr, ranges=IRanges(start=cdsEnd, end=end)))))
 
 	# Make 3' UTR
-	kg.p <- kg[(kg$strand=="+")&(kg$txEnd!=kg$cdsEnd)&(kg$cdsEnd!=kg$cdsStart),]
-	kg.m <- kg[(kg$strand=="-")&(kg$txStart!=kg$cdsStart)&(kg$cdsEnd!=kg$cdsStart),]
+	kg.p <- kg[(kg$strand=="+")&(kg$end!=kg$cdsEnd)&(kg$cdsEnd!=kg$cdsStart),]
+	kg.m <- kg[(kg$strand=="-")&(kg$start!=kg$cdsStart)&(kg$cdsEnd!=kg$cdsStart),]
 
-	utr3.gr <- suppressWarnings(c(with(kg.p, GRanges(seqnames=kg.p$chrom, ranges=IRanges(start=cdsEnd, end=txEnd))),with(kg.m, GRanges(seqnames=kg.m$chrom, ranges=IRanges(start=txStart+1, end=cdsStart+1)))))
+	utr3.gr <- suppressWarnings(c(with(kg.p, GRanges(seqnames=kg.p$chr, ranges=IRanges(start=cdsEnd, end=end))),with(kg.m, GRanges(seqnames=kg.m$chr, ranges=IRanges(start=start, end=cdsStart)))))
 
 	# Make mutually exclusive if option is set (?)
 

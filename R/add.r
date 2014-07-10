@@ -135,14 +135,14 @@ getGenes <- function(geneset="ucsc",genome,cachedir=NULL)
 		setkey(kgx,kgID)
 		setkey(ki,kgID)
 		kg <- ki[kg,]
-		genes <- kgx[kg,list(chr=chrom,start=txStart+1,end=txEnd,strand=strand,name=geneSymbol,gene.id=clusterId)]
+		genes <- kgx[kg,list(chr=chrom,start=txStart+1,end=txEnd,strand=strand,name=geneSymbol,gene.id=clusterId,isoform.id=NA,cdsStart=cdsStart+1,cdsEnd=cdsEnd,exonCount=exonCount,exonStarts=exonStarts,exonEnds=exonEnds)]
 		genes[,isoform.id:=kgID]
 		genes[,kgID:=NULL]
 		return(genes)
 	} else if(geneset=="refseq")
 	{
 		rg <- getUCSCTable("refFlat",genome,cachedir)
-		genes <- rg[,list(chr=chrom,start=txStart+1,end=txEnd,strand=strand,name=geneName,gene.id=geneName,isoform.id=name)]
+		genes <- rg[,list(chr=chrom,start=txStart+1,end=txEnd,strand=strand,name=geneName,gene.id=geneName,isoform.id=name,cdsStart=cdsStart+1,cdsEnd=cdsEnd,exonCount=exonCount,exonStarts=exonStarts,exonEnds=exonEnds)]
 		return(genes)
 	} else if(geneset=="ensembl")
 	{
@@ -150,7 +150,7 @@ getGenes <- function(geneset="ucsc",genome,cachedir=NULL)
 		en <- getUCSCTable("ensemblToGeneName",genome,cachedir)
 		setkey(eg,"name")
 		setkey(en,"name")
-		genes <- en[eg,list(chr=chrom,start=txStart+1,end=txEnd,strand=strand,name=value,gene.id=name2)]
+		genes <- en[eg,list(chr=chrom,start=txStart+1,end=txEnd,strand=strand,name=value,gene.id=name2,isoform.id=NA,cdsStart=cdsStart+1,cdsEnd=cdsEnd,exonCount=exonCount,exonStarts=exonStarts,exonEnds=exonEnds)]
 		genes[,isoform.id:=name]
 		genes[,name:=NULL]
 		return(genes)
