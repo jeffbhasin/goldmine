@@ -455,7 +455,7 @@ reportGeneModel <- function(query, genome, cachedir=NULL, flank.bp=1000)
 	starts <- query$start
 	ends <- query$end
 
-	print("Generating annotation regions from UCSC knownGene table")
+	#print("Generating annotation regions from UCSC knownGene table")
 
 	# Load the UCSC tables we will need
 	knownGene <- getUCSCTable("knownGene", genome, cachedir)
