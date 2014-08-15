@@ -169,7 +169,7 @@ getSeqMeta <- function(ranges,bsgenome,genome,cachedir)
 #' @param start.order vector of starting order for matching (must be a sequence of integers in any order from 1 to the total number of sequences in both target.seq and pool.seq)
 #' @return \code{DNAStringSet} object of a covariate-matched reference set
 #' @export
-drawBackgroundSetPropensity <- function(target.seq, target.meta, pool.seq, pool.meta, formula, start.order)
+drawBackgroundSetPropensity <- function(target.seq, target.meta, pool.seq, pool.meta, formula, start.order, n=1)
 {
 	# setting binary value for group assignment
 	target.meta$treat <- 1
@@ -185,8 +185,13 @@ drawBackgroundSetPropensity <- function(target.seq, target.meta, pool.seq, pool.
 	# obtain values
 	lrm.out.fitted <- rms:::predict.lrm(lrm.out,type="fitted")
 
+	# if model didn't fit, exclude these from matching
+	bad <- is.na(lrm.out.fitted)
+	all.meta.shuffle <- all.meta.shuffle[!bad,]
+	lrm.out.fitted <- lrm.out.fitted[!bad]
+
 	# match
-	rr <- Matching::Match(Y=NULL, Tr=all.meta.shuffle$treat, X=lrm.out.fitted, M=1, version="standard", replace=FALSE)
+	rr <- Matching::Match(Y=NULL, Tr=all.meta.shuffle$treat, X=lrm.out.fitted, M=n, version="standard", replace=FALSE)
 	#summary(rr)
 
 	# make new sequence set
