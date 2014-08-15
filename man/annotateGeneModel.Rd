@@ -3,7 +3,7 @@
 \alias{annotateGeneModel}
 \title{Annotate regions in non-mutually exclusive gene model categories}
 \usage{
-annotateGeneModel(query, genome, cachedir = NULL, flank.bp = 1000)
+annotateGeneModel(query, genes, genome, cachedir = NULL, flank.bp = 1000)
 }
 \arguments{
 \item{query}{A data.frame of regions to annotate. Must contain the columns "chr", "start", "end", and the "start" coordinates must be 1-based. All additional columns will be retained in the output object.}

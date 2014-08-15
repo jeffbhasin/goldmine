@@ -10,5 +10,21 @@ Description: Goldmine obtains data by direct downloading and updating of a
     contains functions to assess genomic context of any given set of genomic
     ranges by performing overlaps with regions of annotated genomic features
     and produce long, short, and plot outputs.
-Depends: GenomicRanges, data.table, stringr, ggplot2, parallel
-Imports: httr, RCurl, R.utils, gtools, Matching, rms, grid, gridExtra, RColorBrewer, reshape
+Depends:
+    GenomicRanges,
+    data.table,
+    stringr,
+    ggplot2,
+    parallel,
+    IRanges
+Imports:
+    httr,
+    RCurl,
+    R.utils,
+    gtools,
+    Matching,
+    rms,
+    grid,
+    gridExtra,
+    RColorBrewer,
+    reshape
