@@ -245,3 +245,92 @@ drawBackgroundSetGenomicFast <- function(n, target.gr, genome, cachedir, chrs)
 
 	draw.gr
 }
+
+# Wrappers
+diffmotif <- function(target.bed, pool.bed, feat.bed, formula="treat ~ sizeLog", outdir=".", genome, cachedir)
+{
+	suppressWarnings(dir.create(outdir))
+
+	# Load BED files -> GRanges
+	target <- fread(target.bed)
+	target.gr <- GRanges(target$V1,IRanges(target$V2,target$V3))
+	pool <- fread(pool.bed)
+	pool.gr <- with(pool,GRanges(V1,IRanges(V2,V3)))
+	feat <- fread(feat.bed)
+	feat.gr <- with(feat,GRanges(V1,IRanges(V2,V3),factor=V4))
+	
+	# Perform matching
+	formula <- as.formula(formula)
+	ref <- doPropMatch(target.gr,pool.gr,pdf=paste0(outdir,"/psm.pdf"),formula=formula,n=1,genome=genome,cachedir=cachedir)
+	ref.gr <- ref$ranges.ref
+
+	# Write FASTA
+	library(BSgenome.Hsapiens.UCSC.hg19)
+	bsg <- Hsapiens
+	fa1 <- getSeq(bsg,target.gr)
+	names(fa1) <- paste0(seqnames(target.gr),":",start(target.gr),"-",end(target.gr))
+	fa2 <- getSeq(bsg,ref.gr)
+	names(fa2) <- paste0(seqnames(ref.gr),":",start(ref.gr),"-",end(ref.gr))
+	writeXStringSet(fa2,paste0(outdir,"/ref.fa"))
+	writeXStringSet(fa1,paste0(outdir,"/target.fa"))
+
+	# Test Enrichment
+	te1 <- suppressWarnings(testEnrichment(target.gr,ref.gr,feat.gr))
+	write.csv(te1,file=paste0(outdir,"/enrich.csv"),row.names=F)
+
+	list(ref=ref,enrich=te1)
+}
+doPropMatch <- function(target, pool, pdf=NULL, formula, n=1, genome, cachedir)
+{
+	target.gr <- makeGRanges(target)
+	pool.gr <- makeGRanges(pool)
+	formula <- as.formula(formula)
+
+	# Get sequences
+	library(BSgenome.Hsapiens.UCSC.hg19)
+	bsg <- BSgenome.Hsapiens.UCSC.hg19
+
+	# Get sequence/region covariates
+
+	# Return list - seq and meta
+	#genome <- "hg19"
+	#cachedir <- "~/myucsc"
+
+	message("Meta for seq1")
+	seq1 <- goldmine:::getSeqMeta(target.gr, bsg, genome, cachedir)
+
+	# filter out all sequences longer than or shorter than the target from the background pool
+	seq2.unfiltered <- pool.gr
+	seq2.unfiltered.size <- width(seq2.unfiltered)
+	seq2.filt <- seq2.unfiltered[(seq2.unfiltered.size<=max(seq1$meta$size))&(seq2.unfiltered.size>=min(seq1$meta$size))]
+
+	message("Meta for seq2")
+	seq2 <- getSeqMeta(seq2.filt, bsg, genome, cachedir)
+	bad <- is.na(seq2$meta$gc)
+	seq2$meta <- seq2$meta[!bad,]
+	seq2$seq <- seq2$seq[!bad]
+	
+	# set which cols have covars in them
+	cols <- 5:ncol(seq1$meta)
+
+	# Do matching
+	# Draw Random Starting Order - Use same start order for all runs
+	message("Do matching")
+	nTotalSeqs <- nrow(seq1$meta) + nrow(seq2$meta)
+	index.random <- sample(seq(1:nTotalSeqs),nTotalSeqs, replace=FALSE)
+	#formula <- as.formula("treat ~ sizeLog + gc + freqCpG + repeatPer + distTSSCenterLogX1")
+	seq.ref <- drawBackgroundSetPropensity(seq1$seq,seq1$meta,seq2$seq,seq2$meta,formula,start.order=index.random,n=n)
+	pro.gr <- makeGRanges(seq.ref)
+
+	message("Do plotting")
+	# Do plotting
+	pdf(file=pdf, width=10.5, height=8, paper="USr")
+	plotCovarHistogramsOverlap(seq1$meta,seq2$meta,cols,main="Target vs Pool")
+	plotCovarHistogramsOverlap(seq1$meta,seq.ref,cols,main="Target vs Matched Reference")
+	mymeta <- list(pool=seq2$meta,match=seq.ref)
+	plotCovarQQ(seq1$meta, mymeta, cols, plot.ncols=4)
+	print(plotCovarDistance(seq1$meta, mymeta, cols))
+	dev.off()
+
+	list(seq1=seq1, seq2=seq2, ranges.ref=pro.gr)
+}
