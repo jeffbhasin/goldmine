@@ -247,7 +247,7 @@ drawBackgroundSetGenomicFast <- function(n, target.gr, genome, cachedir, chrs)
 }
 
 # Wrappers
-diffmotif <- function(target.bed, pool.bed, feat.bed, formula="treat ~ sizeLog", outdir=".", genome, cachedir)
+diffmotif <- function(target.bed, pool.bed, feat.bed, match.n=1, formula="treat ~ sizeLog", outdir=".", genome, cachedir)
 {
 	suppressWarnings(dir.create(outdir))
 
@@ -261,7 +261,7 @@ diffmotif <- function(target.bed, pool.bed, feat.bed, formula="treat ~ sizeLog",
 	
 	# Perform matching
 	formula <- as.formula(formula)
-	ref <- doPropMatch(target.gr,pool.gr,pdf=paste0(outdir,"/psm.pdf"),formula=formula,n=1,genome=genome,cachedir=cachedir)
+	ref <- doPropMatch(target.gr,pool.gr,pdf=paste0(outdir,"/psm.pdf"),formula=formula,n=match.n,genome=genome,cachedir=cachedir)
 	ref.gr <- ref$ranges.ref
 
 	# Write FASTA
