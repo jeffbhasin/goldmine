@@ -145,9 +145,16 @@ getSeqMeta <- function(ranges,bsgenome,genome,cachedir)
 	distTSECenterLogX1 <- log10(getDistTSECenter(seq.ranges,genome,cachedir)+1)
 	freqCpG <- getFreqCpG(seq)
 
+	# single nucleotide frequencies
+	mono <- alphabetFrequency(seq)
+	freqA <- mono[,1]/size
+	freqT <- mono[,4]/size
+	freqC <- mono[,2]/size
+	freqG <- mono[,3]/size
+
 	# combine into our covariate dataframe
 	#seq.meta <- data.frame(name, chr, start, end, size, sizeLog, gc, freqCpG, repeatPer, distTSS, distTSSCenter, distTSSCenterLogX1, distTSE, distTSECenter, distTSECenterLogX1)
-	seq.meta <- data.frame(name, chr, start, end, size, sizeLog, gc, freqCpG, repeatPer, distTSSCenterLogX1, distTSECenterLogX1)
+	seq.meta <- data.frame(name, chr, start, end, size, sizeLog, gc, freqCpG, freqA, freqT, freqC, freqG, repeatPer, distTSSCenterLogX1, distTSECenterLogX1)
 	#seq.meta <- data.frame(name, chr, start, end, size, sizeLog, gc, freqCpG, repeatPer)
 
 	# Return list with seq and then df of metadata
