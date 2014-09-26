@@ -92,7 +92,7 @@ getUCSCTable <- function(table, genome, cachedir=NULL, version="latest", sync=TR
 	# We can now open the data from the TXT
 	if(fread==TRUE)
 	{
-		txt <- fread(cachedir.txt)
+		txt <- fread(cachedir.txt,sep="\t")
 	} else
 	{
 		txt <- read.table(file=cachedir.txt, comment.char="", header=FALSE, stringsAsFactors=FALSE, sep="\t", quote="")

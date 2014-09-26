@@ -59,8 +59,8 @@ addNearest <- function(query,subject,id="name",prefix="subject")
 	matched <- data.frame(id=1:length(query.gr),name=NA)
 	matched[fo$queryHits,]$name <- fo$name2
 
-	query.dt[,eval(paste(prefix,"nearest",sep=".")):=matched$name]
-	query.dt[,eval(paste(prefix,"dist",sep=".")):=dist]
+	query.dt[,eval(paste(prefix,"nearest",sep="_")):=matched$name]
+	query.dt[,eval(paste(prefix,"dist",sep="_")):=dist]
 	return(query.dt)
 }
 # --------------------------------------------------------------------
