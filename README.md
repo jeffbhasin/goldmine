@@ -23,3 +23,6 @@ Example: Loading knownGene on the fly to a data.frame
 library(goldmine)
 knownGene <- getUCSCTable("knownGene","hg19")
 ```
+## Documentation
+* [PDF Introduction Slides](https://github.com/github/gnomegenome/blob/master/docs/goldmine-intro.pdf)
+* [PDF Manual](https://github.com/github/gnomegenome/blob/master/docs/goldmine-manual.pdf)
