@@ -12,12 +12,13 @@
 
 ## Installation
 From R:
-
-	library(devtools)
-	install_github("gnomegenome/goldmine")
-
+```r
+library(devtools)
+install_github("gnomegenome/goldmine")
+```
 ## Usage
 Example: Loading knownGene on the fly to a data.frame
-
-	library(goldmine)
-	knownGene <- getUCSCTable("knownGene","hg19")
+```r
+library(goldmine)
+knownGene <- getUCSCTable("knownGene","hg19")
+```
