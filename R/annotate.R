@@ -213,6 +213,8 @@ goldmine <- function(query, genes=getGenes(geneset="ucsc", genome=genome, cached
 #' @export
 gmWrite <- function(gm,path=".")
 {
+	if(!file.exists(path)){dir.create(path)}
+
 	f <- paste0(path,"/context.csv")
 	message("Writing CSV File: ",f)
 	write.csv(gm$context,file=f,row.names=F)
