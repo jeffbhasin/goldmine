@@ -9,6 +9,7 @@
 * getUCSCTable has been implemented which supports downloading and loading of any UCSC table from any UCSC genome into R, and can optionally sync a local cache of these tables
 * goldmine() has been implemented which creates a list of tables describing genomic context with respect to genes and features
 * Functions for differential testing are being updated to integrate with the goldmine() output list
+* Documentation and testing are on-going
 
 ## Installation
 From R:
