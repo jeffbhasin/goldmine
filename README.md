@@ -24,5 +24,5 @@ library(goldmine)
 knownGene <- getUCSCTable("knownGene","hg19")
 ```
 ## Documentation
-* [PDF Introduction Slides](https://github.com/github/gnomegenome/blob/master/docs/goldmine-intro.pdf)
-* [PDF Manual](https://github.com/github/gnomegenome/blob/master/docs/goldmine-manual.pdf)
+* [PDF Introduction Slides](https://github.com/github/gnomegenome/goldmine/blob/master/docs/goldmine-intro.pdf)
+* [PDF Manual](https://github.com/github/gnomegenome/goldmine/blob/master/docs/goldmine-manual.pdf)
