@@ -8,3 +8,4 @@ ignore/*
 *.so
 *.swp
 *._*
+inst/doc

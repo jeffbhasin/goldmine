@@ -135,7 +135,7 @@ getGenes <- function(geneset="ucsc",genome,cachedir=NULL)
 		setkey(kgx,kgID)
 		setkey(ki,kgID)
 		kg <- ki[kg,]
-		genes <- kgx[kg,list(chr=chrom,start=txStart+1,end=txEnd,strand=strand,name=geneSymbol,gene.id=clusterId,isoform.id=NA,cdsStart=cdsStart,cdsEnd=cdsEnd,exonCount=exonCount,exonStarts=exonStarts,exonEnds=exonEnds)]
+		genes <- kgx[kg,list(chr=chrom,start=txStart+1,end=txEnd,strand=strand,name=geneSymbol,gene.id=clusterId,isoform.id=NA,cdsStart=cdsStart,cdsEnd=cdsEnd,exonCount=exonCount,exonStarts=exonStarts,exonEnds=exonEnds,kgID=kgID)]
 		genes[,isoform.id:=kgID]
 		genes[,kgID:=NULL]
 		return(genes)
