@@ -148,11 +148,11 @@ getGenes <- function(geneset="ucsc",genome,cachedir=NULL)
 	{
 		eg <- getUCSCTable("ensGene",genome,cachedir)
 		en <- getUCSCTable("ensemblToGeneName",genome,cachedir)
-		setkey(eg,"name")
-		setkey(en,"name")
-		genes <- en[eg,list(chr=chrom,start=txStart+1,end=txEnd,strand=strand,name=value,gene.id=name2,isoform.id=NA,cdsStart=cdsStart,cdsEnd=cdsEnd,exonCount=exonCount,exonStarts=exonStarts,exonEnds=exonEnds)]
-		genes[,isoform.id:=name]
-		genes[,name:=NULL]
+		setnames(eg,"name","isoform.id")
+		setnames(en,"name","isoform.id")
+		setkey(eg,"isoform.id")
+		setkey(en,"isoform.id")
+		genes <- en[eg,list(chr=chrom,start=txStart+1,end=txEnd,strand=strand,name=value,gene.id=name2,isoform.id=isoform.id,cdsStart=cdsStart,cdsEnd=cdsEnd,exonCount=exonCount,exonStarts=exonStarts,exonEnds=exonEnds)]
 		return(genes)
 	}
 }
