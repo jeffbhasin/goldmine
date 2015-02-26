@@ -159,8 +159,12 @@ syncUCSCTable <- function(table, genome, url, cachedir)
 	}
 
 	# Get the remote file mod time from the HTTP header
-	mtime.remote <- httr::HEAD(url.dl.txt)$headers$`last-modified`
+	#mtime.remote <- httr::HEAD(url.dl.txt)$headers$`last-modified`
 	#mtime.remote <- strptime(mtime.remote, format="%a, %d %b %Y %T", tz="GMT")
+	# Noticed on 2014-12-23 that httr is mangling the modified header, this is not an ideal fix but restores function for now until httr can fix the bug
+	mtime.remote <- httr::HEAD(url.dl.txt)$headers
+	mtime.remote <- toupper(paste0(str_replace(names(mtime.remote)[3],"last-modified: ",""),":",mtime.remote[3]))
+	file.latest <- toupper(file.latest)
 
 	# Re-download only if this mod time is different than our own
 	#if(is.na(file.mtime1.txt)){file.mtime1.txt="file never downloaded"}
