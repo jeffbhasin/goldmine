@@ -319,7 +319,7 @@ getGeneModels <- function(genes, genome, cachedir)
 #' @param genome See goldmine()
 #' @param cachedir See goldmine()
 #' @export
-getFeatures <- function(tables=c("wgEncodeRegDnaseClusteredV2","wgEncodeRegTfbsClusteredV3","tfbsConsSites", "cosmic", "oreganno", "vistaEnhancers", "phastConsElements100way"), genome, cachedir)
+getFeatures <- function(tables=c("wgEncodeRegDnaseClusteredV3","wgEncodeRegTfbsClusteredV3","tfbsConsSites", "cosmic", "oreganno", "vistaEnhancers", "phastConsElements100way"), genome, cachedir)
 {
 	#if(genome!="hg19"){stop("This shortcut function is designed for genome hg19 only. Pleasure use getUCSCTable() to build feature sets for any other UCSC genome as desired.")}
 	#tables <- c("wgEncodeRegDnaseClusteredV2","wgEncodeRegTfbsClusteredV3","tfbsConsSites","gwasCatalog", "pubsBlat", "cosmic", "oreganno", "vistaEnhancers", "phastConsElements100way")
