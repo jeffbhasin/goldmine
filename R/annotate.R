@@ -40,11 +40,11 @@ goldmine <- function(query, genes=getGenes(geneset="ucsc", genome=genome, cached
 	query.gr$qrow <- 1:length(query.gr)
 
 	# Extract gene models
-	genemodels <- goldmine:::getGeneModels(genes=genes.gr, genome=genome, cachedir=cachedir)
+	genemodels <- suppressWarnings(goldmine:::getGeneModels(genes=genes.gr, genome=genome, cachedir=cachedir))
 
 	# Do the context annotation ("wide format" - returns same rows as original plus annotation columns)
 	message("Generating context annotation - genes")
-	genemodels.per <- lapply(genemodels,function(x) goldmine:::calcPercentOverlap(query.gr,reduce(x)))
+	genemodels.per <- suppressWarnings(lapply(genemodels,function(x) goldmine:::calcPercentOverlap(query.gr,reduce(x))))
 	names(genemodels.per) <- paste0(names(genemodels.per),"_per")
 	ann.gene <- do.call(cbind,genemodels.per)
 	ann <- addNearest(query.gr,genes.gr,id="name",prefix="genes")
@@ -61,6 +61,46 @@ goldmine <- function(query, genes=getGenes(geneset="ucsc", genome=genome, cached
 	calls[t] <- "3' end"
 	calls[p] <- "promoter"
 	ann$call <- calls
+
+	# Want two gene columns - one that tells the gene(s) associated with the context calls and one that gives all overlapping genes OR the nearest gene
+	# If intergenic, just leave as nearest gene
+	ann$call_genes <- "" 
+	ann$overlapped_genes <- ""
+
+	genemodels$end3$num <- 0
+	genemodels$promoter$num <- 0
+	genemodels$end3$con <- "3' end"
+	genemodels$promoter$con <- "promoter"
+	genemodels$intron$con <- "intron"
+	genemodels$exon$con <- "exon"
+	gparts <- c(genemodels$exon,genemodels$intron,genemodels$promoter,genemodels$end3)
+	
+	# call_genes are the genes behind the context call
+	fo <- as.data.frame(findOverlaps(query,gparts))
+	fo$call <- ann[fo$queryHits,]$call
+	fo$gpart <- gparts[fo$subjectHits]$con
+	fo$gene <- genes.gr[gparts[fo$subjectHits]$srow]$name
+	focall <- fo[fo$call==fo$gpart,]
+	focall <- data.table(focall)
+	focall <- focall[,list(call_genes=toString(unique(gene))),by="queryHits"]
+	ann[focall$queryHits,]$call_genes <- focall$call_genes
+
+	# associated_genes are nearest genes for intergenic, and all genes for which any part is overlapped for the others
+	fo <- data.table(fo)
+	fo <- fo[,list(associated_genes=toString(unique(gene))),by="queryHits"]
+
+	ann[fo$queryHits,]$overlapped_genes <- fo$associated_genes
+
+	# order all the gene columns together
+	g <- ann$genes_nearest
+	d <- ann$genes_dist
+	ann[,genes_nearest:=NULL]
+	ann[,genes_dist:=NULL]
+
+	ann$nearest_genes <- g
+	ann$distance_to_nearest_gene <- d
+
+	
 
 	message("Generating context annotation - features")
 	features.per <- lapply(features.gr,function(x) goldmine:::calcPercentOverlap(query.gr,reduce(x)))
