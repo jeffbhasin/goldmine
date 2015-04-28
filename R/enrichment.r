@@ -325,6 +325,8 @@ drawGenomePool <- function(query, n, genome, cachedir, chrs=NULL)
 
 
 # Wrappers
+
+
 diffmotif <- function(target.bed, pool.bed, feat.bed, match.n=1, formula="treat ~ sizeLog", outdir=".", genome, cachedir)
 {
 	suppressWarnings(dir.create(outdir))
@@ -358,15 +360,23 @@ diffmotif <- function(target.bed, pool.bed, feat.bed, match.n=1, formula="treat 
 
 	list(ref=ref,enrich=te1)
 }
-doPropMatch <- function(target, pool, pdf=NULL, formula, n=1, genome, cachedir)
+
+# -----------------------------------------------------------------------------
+#' Do PSM
+#'
+#' PSM function
+#' @param obj A data.frame or data.table with columns "chr", "start", and "end" and any other columns
+#' @return A GRanges made from the data in obj.
+#' @export
+doPropMatch <- function(target, pool, pdf=NULL, formula, n=1, bsg, genome, cachedir)
 {
 	target.gr <- makeGRanges(target)
 	pool.gr <- makeGRanges(pool)
 	formula <- as.formula(formula)
 
 	# Get sequences
-	library(BSgenome.Hsapiens.UCSC.hg19)
-	bsg <- BSgenome.Hsapiens.UCSC.hg19
+	#library(BSgenome.Hsapiens.UCSC.hg19)
+	#bsg <- BSgenome.Hsapiens.UCSC.hg19
 
 	# Get sequence/region covariates
 
