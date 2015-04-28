@@ -18,7 +18,7 @@
 #' @param cachedir A path to a directory where a local cache of UCSC tables are stored. If equal to \code{NULL} (default), the data will be downloaded to temporary files and loaded on the fly.
 #' @return A list: "context" shows a percent overlap for each range in the query set with gene model regions and each feature set, "genes" shows a detailed view of each query region overlap with individual gene isoforms, "features" is a list of tables which for each given feature contain a row for each instance of a query region overlapping with a feature region.
 #' @export
-goldmine <- function(query, genes=getGenes(geneset="ucsc", genome=genome, cachedir=cachedir), features=getFeatures(genome=genome,cachedir=cachedir), genome, cachedir)
+goldmine <- function(query, genes=getGenes(geneset="ucsc", genome=genome, cachedir=cachedir), features=list(), genome, cachedir)
 {
 	# Validate and convert query input
 	query.gr <- makeGRanges(query)
@@ -101,11 +101,13 @@ goldmine <- function(query, genes=getGenes(geneset="ucsc", genome=genome, cached
 	ann$distance_to_nearest_gene <- d
 
 	
-
-	message("Generating context annotation - features")
-	features.per <- lapply(features.gr,function(x) goldmine:::calcPercentOverlap(query.gr,reduce(x)))
-	names(features.per) <- paste0(names(features.per),"_per")
-	ann <- cbind(ann, do.call(cbind,features.per))
+	if(length(features)>0)
+	{
+		message("Generating context annotation - features")
+		features.per <- lapply(features.gr,function(x) goldmine:::calcPercentOverlap(query.gr,reduce(x)))
+		names(features.per) <- paste0(names(features.per),"_per")
+		ann <- cbind(ann, do.call(cbind,features.per))
+	}
 
 	# Add URL
 	ann$url <- goldmine:::getBrowserURLs(query.gr,genome)
