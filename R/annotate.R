@@ -218,6 +218,8 @@ goldmine <- function(query, genes=getGenes(geneset="ucsc", genome=genome, cached
 	rg <- reportGenes2(query.gr, genes.gr)
 
 	# Do the feature overlaps if asked for, separate for each feature on the list
+	if(length(features)>0)
+	{
 	message("Generating features report")
 	reportFeatures2 <- function(query.gr, x.gr)
 	{
@@ -241,7 +243,10 @@ goldmine <- function(query, genes=getGenes(geneset="ucsc", genome=genome, cached
 		return(annf2)
 	}
 	rf <- lapply(features.gr,function(x) reportFeatures2(query.gr, x))
-
+	} else
+	{
+		rf <- list()
+	}
 	return(list(context=ann, genes=rg, features=rf))
 }
 # -----------------------------------------------------------------------------
