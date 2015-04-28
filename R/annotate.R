@@ -73,10 +73,10 @@ goldmine <- function(query, genes=getGenes(geneset="ucsc", genome=genome, cached
 	genemodels$promoter$con <- "promoter"
 	genemodels$intron$con <- "intron"
 	genemodels$exon$con <- "exon"
-	gparts <- c(genemodels$exon,genemodels$intron,genemodels$promoter,genemodels$end3)
+	gparts <- suppressWarnings(c(genemodels$exon,genemodels$intron,genemodels$promoter,genemodels$end3))
 	
 	# call_genes are the genes behind the context call
-	fo <- as.data.frame(findOverlaps(query,gparts))
+	fo <- as.data.frame(findOverlaps(query.gr,gparts))
 	fo$call <- ann[fo$queryHits,]$call
 	fo$gpart <- gparts[fo$subjectHits]$con
 	fo$gene <- genes.gr[gparts[fo$subjectHits]$srow]$name
