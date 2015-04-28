@@ -246,6 +246,84 @@ drawBackgroundSetGenomicFast <- function(n, target.gr, genome, cachedir, chrs)
 	draw.gr
 }
 
+# -----------------------------------------------------------------------------
+#' Draw a length-matched pool of sequences from the genome
+#'
+#' Given a query set of ranges, draw a length-matched pool of sequences.
+#' @return A GRanges of the background sequences.
+#' @export
+drawGenomePool <- function(query, n, genome, cachedir, chrs=NULL)
+{
+	target.gr <- makeGRanges(query)
+	if(is.null(chrs))
+	{
+		chrs <- unique(seqnames(target.gr))
+	}
+
+	#target.gr <- dmrs.gr
+	lens <- width(target.gr)
+	# duplicate the sizes by the number of regions we want to draw per size
+	lens <- rep(lens,n)
+
+	# Get chromosome lengths
+	chromsizes <- getUCSCTable("chromInfo", genome, cachedir)
+	chromsizes <- chromsizes[chromsizes$chrom %in% chrs,]
+
+	# Get gaps GR
+	gaps <- getUCSCTable("gap", genome, cachedir)
+	gaps.gr <- with(gaps, GRanges(seqnames=chrom, ranges=IRanges(start=chromStart+1, end=chromEnd)))
+
+	# For each size, draw n random non-gap positions
+
+	dodraw <- function(lens)
+	{
+		chrs <- sample(chrs,length(lens),replace=T)
+		dt <- data.table(len=lens,chr=chrs)
+		dt <- dt[,list(len=len, start=sample(1:(chromsizes[chromsizes$chrom==chr,]$size),length(len))), by=chr]
+		draw.gr <- GRanges(dt$chr,IRanges(start=dt$start,width=dt$len))
+		return(draw.gr)
+	}
+	draw.gr <- dodraw(lens)
+
+	# Exclude the bads and redraw them
+	isbad <- TRUE
+	iter <- 1
+	while(isbad)
+	{
+		# Check for overlapping regions
+		dups <- data.table(as.data.frame(findOverlaps(draw.gr,draw.gr)))
+		dups <- dups[queryHits!=subjectHits,]$queryHits
+		# Check for those that hit gap regions
+		gaps <- data.table(as.data.frame(findOverlaps(draw.gr,gaps.gr)))
+		gaps <- gaps[queryHits!=subjectHits,]$queryHits
+		# Check for those that extend beyond chr ends
+		if(sum(end(draw.gr) > chromsizes[match(as.vector(seqnames(draw.gr)),chromsizes$chrom),]$size)>0){bigs <- seq(1,length(draw.gr))[end(draw.gr) > chromsizes[match(as.vector(seqnames(draw.gr)),chromsizes$chrom),]$size]} else {bigs<-c()}
+		#seqlengths(draw.gr) <- chromsizes[match(seqlevels(draw.gr),chromsizes$chrom),]$size
+		#1:length(draw.gr)[end(draw.gr) > chromsizes[match(as.vector(seqnames(draw.gr)),chromsizes$chrom),]$size]
+
+		# Need to account for if they are both gaps and dups, otherwise we start building up extra lengths we don't need
+		# I fixed this by using unique()
+		toget <- unique(c(gaps,dups,bigs))
+
+		# Redraw these widths
+		if(length(toget)==0)
+		{
+			isbad <- FALSE
+		} else
+		{
+			message("Draw iter ",iter," had ", length(dups)," overlapping, ",length(gaps)," in gap regions, and ", length(bigs)," off chromosome ends. Redrawing these...")
+			iter <- iter+1
+			draw.gr <- c(draw.gr[-c(toget)],dodraw(width(draw.gr[c(toget)])))
+		}
+	}
+
+	# Make sure the length distribution of the output matches that of the input times the number of draws for each
+	if(!all((table(width(target.gr))*n)==table(width(draw.gr)))){stop("Final length tables did not match, the drawing did not work.")}
+
+	draw.gr
+}
+
+
 # Wrappers
 diffmotif <- function(target.bed, pool.bed, feat.bed, match.n=1, formula="treat ~ sizeLog", outdir=".", genome, cachedir)
 {
