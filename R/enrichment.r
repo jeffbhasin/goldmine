@@ -49,11 +49,11 @@ countFeatures <- function(query.gr, features.gr)
 	fo <- findOverlaps(query.gr, features.gr)
 	qh <- queryHits(fo)
 	sh <- subjectHits(fo)
-	query.hits <- data.frame(chr=seqnames(query.gr[qh]), start=start(query.gr[qh]), end=end(query.gr[qh]), factor=features.gr[sh]$factor)
+	query.hits <- data.frame(chr=seqnames(query.gr[qh]), start=start(query.gr[qh]), end=end(query.gr[qh]), name=features.gr[sh]$name)
 	query.hits$queryRegion <- with(query.hits,paste(chr, ":", start, "-", end, sep=""))
 	#query.counts <- ddply(query.hits, .(factor), summarize, nQueryRegions=length(unique(queryRegion)))
 	query.hits <- data.table(query.hits)
-	query.counts <- data.frame(query.hits[,list(nQueryRegions=length(unique(queryRegion))),by="factor"])
+	query.counts <- data.frame(query.hits[,list(nQueryRegions=length(unique(queryRegion))),by="name"])
 	query.counts
 }
 
@@ -73,9 +73,9 @@ testEnrichment <- function(query, background, features)
 	background.gr <- makeGRanges(background)
 	features.gr <- makeGRanges(features)
 
-	if(!("factor" %in% colnames(values(features.gr))))
+	if(!("name" %in% colnames(values(features.gr))))
 	{
-		stop("The object given in features must contain a column named \"factor\". The set of ranges for each factor type given will be tested separately for enrichment.")
+		stop("The object given in features must contain a column named \"name\". The set of ranges for each factor type given will be tested separately for enrichment.")
 	}
 
 	# Total number of sites in each
@@ -89,12 +89,12 @@ testEnrichment <- function(query, background, features)
 	# Same for the background
 	message("Computing query to background overlap")
 	background.counts <- countFeatures(background.gr, features.gr)
-	names(background.counts) <- c("factor","nBackgroundRegions")
+	names(background.counts) <- c("name","nBackgroundRegions")
 
 	# Combine and fix if there are missings
 	#counts <- plyr::join(query.counts, background.counts, by="factor", type="full")
-	counts <- merge(query.counts, background.counts, all=T, by="factor")
-	names(counts) <- c("factor", "query", "background")
+	counts <- merge(query.counts, background.counts, all=T, by="name")
+	names(counts) <- c("name", "query", "background")
 	counts[is.na(counts[,2]),2] <- 0
 	counts[is.na(counts[,3]),3] <- 0
 
@@ -124,7 +124,7 @@ testEnrichment <- function(query, background, features)
 	# Output final dataframe
 	frac.query <- round(counts$query/n.query,2)
 	frac.background <- round(counts$background/n.background,2)
-	out <- data.frame(factor=counts$factor, overlap.query=counts$query, n.query=n.query, overlap.background=counts$background, n.background=n.background, frac.query, frac.background, frac.diff=frac.query-frac.background, p.value=pvs, p.adjusted=pva, sig=pva<0.05)
+	out <- data.frame(name=counts$name, overlap.query=counts$query, n.query=n.query, overlap.background=counts$background, n.background=n.background, frac.query, frac.background, frac.diff=frac.query-frac.background, p.value=pvs, p.adjusted=pva, sig=pva<0.05)
 
 	out <- out[order(out$frac.diff, decreasing=TRUE),]
 	out
@@ -368,8 +368,9 @@ diffmotif <- function(target.bed, pool.bed, feat.bed, match.n=1, formula="treat 
 #' @param obj A data.frame or data.table with columns "chr", "start", and "end" and any other columns
 #' @return A GRanges made from the data in obj.
 #' @export
-doPropMatch <- function(target, pool, pdf=NULL, formula, n=1, bsg, genome, cachedir)
+doPropMatch <- function(target, pool, outdir=".", formula, n=1, bsg, genome, cachedir)
 {
+	dir.create(outdir,showWarnings=FALSE,recursive=TRUE)
 	target.gr <- makeGRanges(target)
 	pool.gr <- makeGRanges(pool)
 	formula <- as.formula(formula)
@@ -410,9 +411,19 @@ doPropMatch <- function(target, pool, pdf=NULL, formula, n=1, bsg, genome, cache
 	seq.ref <- drawBackgroundSetPropensity(seq1$seq,seq1$meta,seq2$seq,seq2$meta,formula,start.order=index.random,n=n)
 	pro.gr <- makeGRanges(seq.ref)
 
+	message("Saving Sequence Sets as FASTA in: ",outdir)
+	proseq <- getSeq(bsg, pro.gr)
+	names(proseq) <- paste(genome,seqnames(pro.gr),start(pro.gr),end(pro.gr),"+",sep="_")
+	names(seq1$seq) <- paste(genome,seqnames(target.gr),start(target.gr),end(target.gr),"+",sep="_")
+	#dir.create("output/motif/fasta",showWarnings=FALSE)
+	writeXStringSet(proseq,paste0(outdir,"/nullset.fa"))
+	writeXStringSet(seq1$seq,paste0(outdir,"/queryset.fa"))
+
 	message("Do plotting")
 	# Do plotting
-	pdf(file=pdf, width=10.5, height=8, paper="USr")
+	pdfpath <- paste0(outdir,"/psm.pdf")
+	message("Saving Matching Performance PDF: ",pdfpath)
+	pdf(file=pdfpath, width=10.5, height=8, paper="USr")
 	plotCovarHistogramsOverlap(seq1$meta,seq2$meta,cols,main="Target vs Pool")
 	plotCovarHistogramsOverlap(seq1$meta,seq.ref,cols,main="Target vs Matched Reference")
 	mymeta <- list(pool=seq2$meta,match=seq.ref)
@@ -420,5 +431,5 @@ doPropMatch <- function(target, pool, pdf=NULL, formula, n=1, bsg, genome, cache
 	print(plotCovarDistance(seq1$meta, mymeta, cols))
 	dev.off()
 
-	list(seq1=seq1, seq2=seq2, ranges.ref=pro.gr)
+	list(query.seq=seq1, null.seq=seq2, ranges.null=pro.gr)
 }
