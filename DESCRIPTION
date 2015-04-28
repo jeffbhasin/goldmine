@@ -1,7 +1,7 @@
 Package: goldmine
 Maintainer: Jeffrey Bhasin <jeffb@case.edu>
 Author: Jeffrey Bhasin <jeffb@case.edu>
-Version: 0.1
+Version: 1.0
 License: GPL-3
 Title: goldmine: Genomic context annotation for any set of genomic
     ranges using UCSC Genome Browser tables
