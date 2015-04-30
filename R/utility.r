@@ -1,3 +1,5 @@
+# Basic useful functions
+
 # -----------------------------------------------------------------------------
 #' Make a data.table from a GRanges or a data.frame
 #'
