@@ -6,10 +6,19 @@
 \usage{
 drawGenomePool(query, n, genome, cachedir, chrs = NULL)
 }
+\arguments{
+\item{query}{A data.frame or data.table with columns "chr", "start", and "end" and any other columns. If a data.frame or data.table, must contain the columns "chr", "start", "end", where the "start" coordinates are 1-based.}
+
+\item{n}{Number of times greater than the query set that the size of the returned background pool will be}
+
+\item{genome}{The UCSC name specific to the genome of the query coordinates (e.g. "hg19", "hg18", "mm10", etc)}
+
+\item{cachedir}{A path to a directory where a local cache of UCSC tables are stored. If equal to \code{NULL} (default), the data will be downloaded to temporary files and loaded on the fly. Caching is highly recommended to save time and bandwidth.}
+}
 \value{
 A GRanges of the background sequences.
 }
 \description{
-Given a query set of ranges, draw a length-matched pool of sequences.
+Given a query set of ranges, draw a length-matched pool of sequences. Returned ranges are required to (1) not overlap with each other or the query, (2) not extend off chromosome ends, (3) not extend over assembly gaps as defined in the UCSC "gap" table for the given genome assembly.
 }
 

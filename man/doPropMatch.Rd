@@ -2,17 +2,32 @@
 % Please edit documentation in R/enrichment.r
 \name{doPropMatch}
 \alias{doPropMatch}
-\title{Do PSM}
+\title{Perform propensity score matching to draw a multi-variate matched set of sequences from a background pool}
 \usage{
-doPropMatch(target, pool, pdf = NULL, formula, n = 1, bsg, genome, cachedir)
+doPropMatch(query, pool, outdir = ".", formula, n = 1, bsg, genome,
+  cachedir)
 }
 \arguments{
-\item{obj}{A data.frame or data.table with columns "chr", "start", and "end" and any other columns}
+\item{query}{A data.frame or data.table with columns "chr", "start", and "end" and any other columns. If a data.frame or data.table, must contain the columns "chr", "start", "end", where the "start" coordinates are 1-based.}
+
+\item{pool}{A data.frame or data.table with columns "chr", "start", and "end" and any other columns. If a data.frame or data.table, must contain the columns "chr", "start", "end", where the "start" coordinates are 1-based.}
+
+\item{outdir}{The function will write a PDF report of matching performance and FASTA files for both the query set and matched null set. Provide a directory in which to save these files.}
+
+\item{formula}{Formula used for matching. For example: "treat ~ sizeLog + freqCpG". The variable "treat" must always be given as the predicted variable. Combinations of predictors can be selected from the set of: size (length of sequence in bp), sizeLog (log of size - recommended for best matching performance), gc (GC%), freqCpG (dinucleotide frequency of CpG sites), freqA (frequency of the base A), freqT, freqC, freqG, repeatPer (% of sequence covered by repeat masked regions), distTSSCenterLogX1 (distance to transcription start sites, log transformed), and distTSECenterLogX1 (distance to transcription end sites, log transformed).}
+
+\item{n}{Number of times greater than the query the matched null set will be.}
+
+\item{bsg}{BString genome from which sequence data can be derived. For example, see the "BSgenome.Hsapiens.UCSC.hg19" for the "hg19" genome BSGenome package from Bioconductor. Similar packages exist for other genomes.}
+
+\item{genome}{The UCSC name specific to the genome of the query coordinates (e.g. "hg19", "hg18", "mm10", etc)}
+
+\item{cachedir}{A path to a directory where a local cache of UCSC tables are stored. If equal to \code{NULL} (default), the data will be downloaded to temporary files and loaded on the fly. Caching is highly recommended to save time and bandwidth.}
 }
 \value{
-A GRanges made from the data in obj.
+A list containing the sequences of both the target and pool along with a GRanges of the matched results which can be used as a null set in testEnrichment().
 }
 \description{
-PSM function
+Given a query set and a background pool, draw a set of sequences from the background pool that most closely match the query set with respect to multiple co-variates.
 }
 

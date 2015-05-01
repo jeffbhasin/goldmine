@@ -1,5 +1,87 @@
 # Basic useful functions
 
+# ====================================================================
+# Exported Functions
+
+# -----------------------------------------------------------------------------
+#' Make a GRanges from a data.frame or data.table with the fields "chr", "start", and "end"
+#'
+#' Given a data.frame or data.table with the columns "chr", "start", and "end", a GenomicRanges (GRanges) object will be created. All other columns will be passed on as metadata. If the input is already a GRanges, it is simply returned. If the column "strand" exists, it will be set as the strand.
+#' @param obj A data.frame or data.table with columns "chr", "start", and "end" and any other columns
+#' @param strand Use the information in the "strand" column to set strand in the GRanges, if it is present.
+#' @return A GRanges made from the data in obj.
+#' @export
+makeGRanges <- function(obj, strand=F)
+{
+	if(class(obj)[1]=="GRanges")
+	{
+		# Return if it is already a GRanges
+		obj
+	} else if(is.data.frame(obj)==TRUE)
+	{
+		# Make GRanges if it is a data.frame
+		if(sum(c("chr", "start", "end") %in% colnames(obj))!=3)
+		{
+			stop("Could not find columns named \"chr\", \"start\", and \"end\" in input data.frame")
+		}
+		ret <- with(obj,GRanges(seqnames=chr,IRanges(start,end)))
+		if(("strand" %in% colnames(obj))&(strand==T))
+		{
+			strand(ret) <- obj$strand
+		}
+		skipcols <- c("chr","start","end","strand","width","element")
+		if(class(obj)[1]=="data.table")
+		{
+			values(ret) <- obj[,!(colnames(obj) %in% skipcols),with=F]
+		} else
+		{
+			values(ret) <- obj[,!(colnames(obj) %in% skipcols)]
+		}
+		ret
+	} else
+	{
+		# Some bad input, throw error
+		stop("GRanges, data.frame, or data.table object required as input")
+	}
+}
+# -----------------------------------------------------------------------------
+
+
+# -----------------------------------------------------------------------------
+#' Write a BED format file from a GenomicRanges object
+#'
+#' Creates BED file suitable for upload as a custom track to the UCSC genome browser. Note that start coordinates are 0-based in the BED format.
+#' @param gr A GenomicRanges object.
+#' @param file Filename of the BED file to write.
+#' @param name Column name to use for the name field in the BED file (optional)
+#' @export
+writeBEDFromGRanges <- function(gr, file, name=NULL)
+{
+	if(file.exists(file)){file.remove(file)}
+	fileConn<-file(file)
+	writeLines(c(paste("track name=\"",file,"\"",sep="")), fileConn)
+	close(fileConn)
+	df <- data.frame(chr=as.character(seqnames(gr)),start=start(gr)-1, end=end(gr))
+	if(!is.null(name))
+	{
+		df$name <- values(gr)[,name]
+	}
+	#df <- df[df$chr %in% c(sapply(seq(1,22),function(x) paste("chr",x,sep="")),"chrX","chrY"),]
+	write.table(df, file=file, row.names=FALSE, col.names=FALSE, sep="\t", quote=FALSE, append=TRUE)
+}
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+#' Clean ggplot2 theme
+#'
+#' Remove gridlines from ggplot2.
+#' @export
+ggnice <- function()
+{
+	theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text = element_text(color="black"))
+}
+# -----------------------------------------------------------------------------
+
 # -----------------------------------------------------------------------------
 #' Make a data.table from a GRanges or a data.frame
 #'
@@ -159,3 +241,8 @@ getGenes <- function(geneset="ucsc",genome,cachedir=NULL)
 	}
 }
 # --------------------------------------------------------------------
+
+# ====================================================================
+# Internal Functions
+
+# ====================================================================

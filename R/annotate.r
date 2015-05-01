@@ -1,22 +1,18 @@
-# #############################################################################
-# Annotation, integrated with UCSC genome browser table fetch functions
-# Author: Jeffrey Bhasin <jeffb@case.edu>
-# Created: 2013-08-21
-# #############################################################################
+# Annotate genomic ranges using reference data about genes and features
 
-# =============================================================================
-# User-Facing Functions
+# ====================================================================
+# Exported Functions
 
-# -----------------------------------------------------------------------------
-#' Explore relationships between a set of genomic ranges with genes and features
+# --------------------------------------------------------------------
+#' Explore relationships between a set of genomic ranges and known genes/features
 #'
 #' Computes the overlap between a query set of genomic ranges given as a GenomicRanges, data.frame, or data.table with gene and feature sets of interest. Reports both summarized overlaps (same number of rows as the query - a "wide format") and in separate tables, individual overlap events (one row for each pair of overlapping query and gene/feature item - a "long format" similar to an inner join).
 #' @param query A GenomicRanges, data.frame, or data.table of regions to annotate. If a data.frame or data.table, must contain the columns "chr", "start", "end", where the "start" coordinates are 1-based. All additional columns will be retained in the output object.
-#' @param genes Genes of interest from the output table of getGenes().
-#' @param features A list() of GenomicRanges, data.table, or data.frame objects giving feature sets of interest.
+#' @param genes Genes of interest from the output table of getGenes(). If not given, will default to the UCSC knownGene table.
+#' @param features A list() of GenomicRanges, data.table, or data.frame objects giving feature sets of interest. If a data.frame or data.table, must contain the columns "chr", "start", "end", where the "start" coordinates are 1-based. All additional columns will be retained in the output object. See also the getFeatures() function.
 #' @param genome The UCSC name specific to the genome of the query coordinates (e.g. "hg19", "hg18", "mm10", etc)
-#' @param cachedir A path to a directory where a local cache of UCSC tables are stored. If equal to \code{NULL} (default), the data will be downloaded to temporary files and loaded on the fly.
-#' @return A list: "context" shows a percent overlap for each range in the query set with gene model regions and each feature set, "genes" shows a detailed view of each query region overlap with individual gene isoforms, "features" is a list of tables which for each given feature contain a row for each instance of a query region overlapping with a feature region.
+#' @param cachedir A path to a directory where a local cache of UCSC tables are stored. If equal to \code{NULL} (default), the data will be downloaded to temporary files and loaded on the fly. Caching is highly recommended to save time and bandwidth.
+#' @return A list: "context" shows a percent overlap for each range in the query set with gene model regions and each feature set ("wide" format - same number of rows as the query and in the same order), "genes" contains a detailed view of each query region overlap with individual gene isoforms ("long" format - a row for each pair of query and isoform overlaps), "features" is a list of tables which for each table given in the "features" argument which contain a row for each instance of a query region overlapping with a feature region (also "long" format).
 #' @export
 goldmine <- function(query, genes=getGenes(geneset="ucsc", genome=genome, cachedir=cachedir), features=list(), genome, cachedir)
 {
@@ -249,12 +245,12 @@ goldmine <- function(query, genes=getGenes(geneset="ucsc", genome=genome, cached
 	}
 	return(list(context=ann, genes=rg, features=rf))
 }
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 #' Write individual CSV files to disk from the output of goldmine()
 #'
-#' Write a CSV file for each output table in a goldmine() output list object.
+#' Write a CSV file for each output table in a goldmine() output list object. Useful for importing to spreadsheet applications. Will save the "context", "genes", and any tables in "features" to individual CSV files.
 #' @param gm The output list object from goldmine().
 #' @param path The directory to write the files into (default: current working directory).
 #' @export
@@ -278,10 +274,18 @@ gmWrite <- function(gm,path=".")
 		}
 	}
 }
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 
-# Given the output table from getGenes() - return list with gene models extracted out
-getGeneModels <- function(genes, genome, cachedir)
+# --------------------------------------------------------------------
+#' Return sets of ranges for individual gene model components based on the contents of the output from getGenes()
+#'
+#' For custom analysis that requires the genomic ranges of gene model components.
+#' @param genes Genes of interest from the output table of getGenes(). If not given, will default to the UCSC knownGene table.
+#' @param genome The UCSC name specific to the genome of the query coordinates (e.g. "hg19", "hg18", "mm10", etc)
+#' @param cachedir A path to a directory where a local cache of UCSC tables are stored. If equal to \code{NULL} (default), the data will be downloaded to temporary files and loaded on the fly. Caching is highly recommended to save time and bandwidth.
+#' @return A list containing one GenomicRanges object for each of the gene model portions: Promoters, 3' Ends, Exons, Introns, Intergenic, 5' UTRs, 3' UTRs. The "srow" column can be used to match individual ranges to individual genes in the table given to the "genes" argument by row number.
+#' @export
+getGeneModels <- function(genes=getGenes(geneset="ucsc", genome=genome, cachedir=cachedir), genome, cachedir)
 {
 	message("Computing gene models")
 
@@ -357,18 +361,18 @@ getGeneModels <- function(genes, genome, cachedir)
 
 	return(genemodels)
 }
+# --------------------------------------------------------------------
 
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 #' Obtain feature sets from UCSC genome browser tables
 #'
-#' Given a vector of table names from the UCSC genome browser that all contain "chrom", "chromStart", and "chromEnd" fields, converts them to input suitable for the goldmine() "features" argument.
-#' @param tables A vector of table names from UCSC (default: set of useful tables).
-#' @param genome See goldmine()
-#' @param cachedir See goldmine()
+#' Given a vector of table names from the UCSC genome browser that all contain "chrom", "chromStart", and "chromEnd" fields, converts them to input suitable for the goldmine() "features" argument (changes column names and adjusts 0-based start coordinates to 1-based).
+#' @param tables A vector of table names from UCSC (default: DnaseI and TFBS from encode for hg19).
+#' @param genome The UCSC name specific to the genome of the query coordinates (e.g. "hg19", "hg18", "mm10", etc)
+#' @param cachedir A path to a directory where a local cache of UCSC tables are stored. If equal to \code{NULL} (default), the data will be downloaded to temporary files and loaded on the fly. Caching is highly recommended to save time and bandwidth.
 #' @export
-getFeatures <- function(tables=c("wgEncodeRegDnaseClusteredV3","wgEncodeRegTfbsClusteredV3","tfbsConsSites", "cosmic", "oreganno", "vistaEnhancers", "phastConsElements100way"), genome, cachedir)
+getFeatures <- function(tables=c("wgEncodeRegDnaseClusteredV3","wgEncodeRegTfbsClusteredV3"), genome, cachedir)
 {
-	#if(genome!="hg19"){stop("This shortcut function is designed for genome hg19 only. Pleasure use getUCSCTable() to build feature sets for any other UCSC genome as desired.")}
 	#tables <- c("wgEncodeRegDnaseClusteredV2","wgEncodeRegTfbsClusteredV3","tfbsConsSites","gwasCatalog", "pubsBlat", "cosmic", "oreganno", "vistaEnhancers", "phastConsElements100way")
 
 	#c("wgEncodeRegDnaseClusteredV2","wgEncodeRegTfbsClusteredV3","tfbsConsSites","gwasCatalog", "pubsBlat", "cosmic", "oreganno", "vistaEnhancers", "phastConsElements100way")
@@ -387,14 +391,14 @@ getFeatures <- function(tables=c("wgEncodeRegDnaseClusteredV3","wgEncodeRegTfbsC
 	names(tab.gr) <- tables
 	return(tab.gr)
 }
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 #' Generate feature sets based on CpG island, shore, and shelf regions
 #'
-#' Uses the "cpgIslandExt" table to generate shore (+/- 2kb from islands) and shelf (+/- 2kb from shores) regions.
-#' @param genome See goldmine()
-#' @param cachedir See goldmine()
+#' Uses the "cpgIslandExt" table to generate shore (+/- 2kb from islands) and shelf (+/- 2kb from shores) regions. Will only function for genomes with this table available. Can be concatenated using c() with other tables, such as from getFeatures(), and provided as input for the "features" argument of goldmine().
+#' @param genome The UCSC name specific to the genome of the query coordinates (e.g. "hg19", "hg18", "mm10", etc)
+#' @param cachedir A path to a directory where a local cache of UCSC tables are stored. If equal to \code{NULL} (default), the data will be downloaded to temporary files and loaded on the fly. Caching is highly recommended to save time and bandwidth.
 #' @export
 getCpgFeatures <- function(genome, cachedir)
 {
@@ -418,24 +422,20 @@ getCpgFeatures <- function(genome, cachedir)
 
 	return(list(cpgIsland=island,cpgShore=shore,cpgShelf=shelf))
 }
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 
-# -----------------------------------------------------------------------------
-#' Clean ggplot2 theme
-#'
-#' Remove gridlines from ggplot2.
-#' @export
-ggnice <- function()
-{
-	theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text = element_text(color="black"))
-}
-# -----------------------------------------------------------------------------
+# ====================================================================
 
-# -----------------------------------------------------------------------------
+
+
+# ====================================================================
+# Internal Functions
+
+# --------------------------------------------------------------------
 # Internal function to calculate % overlaps for report format
 # special version to retain a srow and return this back to us for mapping back to the query vs genes intersect set
 # reports percent of GENE MODEL FEATURE overlapped, not percent of query that overlaps with it
-# return DF of srow from original kg and qrow from original input ranges. We'll then use these to join these features back into the original query<->genes overlap table we're already started contructing. The NAs can then simply be cast over to 0.
+# return DF of srow from original kg and qrow from original input ranges. We'll then use these to join these features back into the original query<->genes overlap table we're already started constructing. The NAs can then simply be cast over to 0.
 calcOverlapForReport <- function(query.gr, subject.gr, all=TRUE)
 {
 	#subject.gr <- reduce(subject.gr)
@@ -460,9 +460,9 @@ calcOverlapForReport <- function(query.gr, subject.gr, all=TRUE)
 		data.frame(qrow=width.df$qrow, srow=width.df$srow, per=width.df$per)
 	}
 }
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 # Internal format to report % overlaps for exons/introns (retains exon # in returned DF)
 calcOverlapForReportExons <- function(query.gr, subject.gr, sum.all=TRUE, report.bp=FALSE)
 {
@@ -481,9 +481,9 @@ calcOverlapForReportExons <- function(query.gr, subject.gr, sum.all=TRUE, report
 	# return DF
 	data.frame(qrow=width.df$qrow, srow=width.df$srow, num=width.df$num, per=width.df$per)
 }
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 # internal function to take two GRanges objects and output the % overlap of the query for each of the queries
 # expands the output to include 0%s - should match row number of query.gr
 calcPercentOverlap <- function(query.gr, subject.gr, sum.all=TRUE, report.bp=FALSE)
@@ -531,33 +531,9 @@ calcPercentOverlap <- function(query.gr, subject.gr, sum.all=TRUE, report.bp=FAL
 			pervec <- round(width.df$width/width(query.gr[width.df$query])*100,digits=2)
 	}
 }
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 
-# -----------------------------------------------------------------------------
-#' Write a BED format file from a GenomicRanges object
-#'
-#' Creates BED file suitable for upload as a custom track to the UCSC genome browser. Note that start coordinates are 0-based in the BED format.
-#' @param gr A GenomicRanges object.
-#' @param file Filename of the BED file to write.
-#' @param name Column name to use for the name field in the BED file (optional)
-#' @export
-writeBEDFromGRanges <- function(gr, file, name=NULL)
-{
-	if(file.exists(file)){file.remove(file)}
-	fileConn<-file(file)
-	writeLines(c(paste("track name=\"",file,"\"",sep="")), fileConn)
-	close(fileConn)
-	df <- data.frame(chr=as.character(seqnames(gr)),start=start(gr)-1, end=end(gr))
-	if(!is.null(name))
-	{
-		df$name <- values(gr)[,name]
-	}
-	#df <- df[df$chr %in% c(sapply(seq(1,22),function(x) paste("chr",x,sep="")),"chrX","chrY"),]
-	write.table(df, file=file, row.names=FALSE, col.names=FALSE, sep="\t", quote=FALSE, append=TRUE)
-}
-# -----------------------------------------------------------------------------
-
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 # internal fucntion to take vectors of positions and a genome and output direct URLs to UCSC genome browser
 getBrowserURLs <- function(input.gr, genome)
 {
@@ -565,6 +541,6 @@ getBrowserURLs <- function(input.gr, genome)
 	#http://genome.ucsc.edu/cgi-bin/hgTracks?db=hg19&position=chr22%3A1-500
 	paste("http://genome.ucsc.edu/cgi-bin/hgTracks?db=", genome, "&position=", seqnames(input.gr), "%3A", start(input.gr), "-", end(input.gr),sep="")
 }
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
+# ====================================================================
 
-# =============================================================================

@@ -1,16 +1,12 @@
-# #############################################################################
-# Download, update, and parse UCSC genome browser tables
-# Author: Jeffrey Bhasin <jeffb@case.edu>
-# Created: 2013-07-31
-# #############################################################################
+# Download, cache, and parse UCSC genome browser tables
 
-# =============================================================================
-# User-Facing Functions
+# ====================================================================
+# Exported Functions
 
-# -----------------------------------------------------------------------------
-#' Load an annotation table from the UCSC Genome Browser as an R data.frame
+# --------------------------------------------------------------------
+#' Load an annotation table from the UCSC Genome Browser as an R data.table
 #'
-#' If only \code{table} and \code{genome} are given, the function will load the data directly into the R workspace. If \code{cachedir} is a path to a directory, this directory will be used to maintain a cachedir cache of UCSC tables so they do not need to be re-downloaded on each call. If the data already exists and \code{sync=TRUE}, the function will only re-download and re-extract if the modified dates are different between the cachedir and remote copies.
+#' If only \code{table} and \code{genome} are given, the function will load the data directly into the R workspace. If \code{cachedir} is a path to a directory, this directory will be used to maintain a cache of UCSC tables so they do not need to be re-downloaded on each call. If the data already exists and \code{sync=TRUE}, the function will only re-download and re-extract if the modified dates are different between the cachedir and remote copies. Note that start coordinates in these raw data tables are 0-based, whereas the Goldmine annotation functions will convert these to be 1-based.
 #' @param table The UCSC string specific for the table to sync (e.g. "knownGene", "kgXref", etc)
 #' @param genome The UCSC string specific to the genome to be downloaded (e.g. "hg19", "hg19", "mm10", etc)
 #' @param cachedir A path to a directory where a cachedir cache of UCSC tables are stored. If equal to \code{NULL} (default), the data will be downloaded to temporary files and loaded on the fly.
@@ -18,7 +14,7 @@
 #' @param sync If \code{TRUE}, then check if a newer version is available and download if it is. If \code{FALSE}, skip this check. Only has an effect if a cachedir cache directory (\code{cachedir}) is given.
 #' @param url The root of the remote http URL to download UCSC data from (set by default to \code{http://hgdownload.cse.ucsc.edu/goldenPath/})
 #; @param fread Use fread() from data.table and return a data.table object rather than the possibly much slower read.table() from base. Set to FALSE if you want a data.frame returned rather than a data.table. Default: TRUE
-#' @return A data.frame of the desired UCSC table.
+#' @return A data.frame or data.table of the desired UCSC table.
 #' @export
 getUCSCTable <- function(table, genome, cachedir=NULL, version="latest", sync=TRUE, url="http://hgdownload.cse.ucsc.edu/goldenPath/", fread=TRUE)
 {
@@ -114,15 +110,14 @@ getUCSCTable <- function(table, genome, cachedir=NULL, version="latest", sync=TR
 	# Return the dataframe
 	txt
 }
-# -----------------------------------------------------------------------------
-# =============================================================================
+# --------------------------------------------------------------------
 
-# =============================================================================
+# ====================================================================
+
+# ====================================================================
 # Internal Functions
 
-
-# =============================================================================
-
+# --------------------------------------------------------------------
 # internal function that does the syncing
 syncUCSCTable <- function(table, genome, url, cachedir)
 {
@@ -207,7 +202,9 @@ syncUCSCTable <- function(table, genome, url, cachedir)
 
 	# ############################
 }
+# --------------------------------------------------------------------
 
+# --------------------------------------------------------------------
 # internal function to parse SQL to get table headers
 getTableHeaderFromSQL <- function(sql.file)
 {
@@ -244,23 +241,9 @@ getTableHeaderFromSQL <- function(sql.file)
 
 	cols
 }
+# --------------------------------------------------------------------
 
-
-# #############################################################################
-# Annotation functions for Rmotif
-# Author: Jeffrey Bhasin <jmb85@case.edu>
-# Created: 2013-03-11
-# #############################################################################
-
-# =============================================================================
-# Packages and Globals
-
-# =============================================================================
-
-# =============================================================================
-# Utility
-
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 # Table reading function
 # Input: path to flatfile table
 # Output: dataframe of table
@@ -269,9 +252,9 @@ read.table.ucsc <- function(path)
 	#one function to read in all tables exported from UCSC the same way
 	read.table(file=path, comment.char="", header=TRUE, stringsAsFactors=FALSE, sep="\t", quote="")
 }
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 # Table reading function for big tables - autodetects types from first 5 rows
 # Input: path to flatfile table
 # Output: dataframe of table
@@ -283,19 +266,12 @@ read.table.ucsc.big <- function(path)
 	tabAll <- read.table(file=path, comment.char="", header=TRUE, stringsAsFactors=FALSE, sep="\t", quote="", colClasses = classes)
 	tabAll
 }
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 
-
-# =============================================================================
-
-# =============================================================================
-# Readers to create annotation tables as R objects
-
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 #' Read UCSC table files from disk and join all related tables
 # Input: genome id, path with trailing "/"
 # Output: joined annotation table dataframe (one row per gene isoform)
-#' @export
 readUCSCAnnotation <- function(genome="hg19",path="")
 {
 	#load downloaded tables
@@ -354,9 +330,9 @@ readUCSCAnnotation <- function(genome="hg19",path="")
 
 	kg.ann
 }
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 
-# ----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 # Parse exon lists
 # Input: data.frame from annotation reader
 # Output: data.frame with each row representing an exon range
@@ -388,21 +364,18 @@ parseExons <- function(ann)
 
 	ex
 }
+# --------------------------------------------------------------------
 
-# ----------------------------------------------------------------------------
-
+# --------------------------------------------------------------------
 readRepeatMasker <- function(genome,path)
 {
 	rmsk.path <- paste(path,genome,".rmsk.txt",sep="")
 	rmsk <- read.table.ucsc.big(rmsk.path)
 	rmsk
 }
+# --------------------------------------------------------------------
 
-# =============================================================================
-
-# =============================================================================
-# Simple Overlap Counts
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 # Counts of overlapping gene isoforms
 # Input: genomic ranges object
 # Output: vector of counts of how many gene isoforms overlap with region
@@ -414,10 +387,9 @@ getGenicOverlap <- function(regions.ranges, ann)
 	#overlap[is.na(overlap)] <- 0
 	overlap
 }
+# --------------------------------------------------------------------
 
-# -----------------------------------------------------------------------------
-
-# ----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 # List of gene names overlapped by each range
 # Input:
 # Output: one column with a list of overlapping gene symbols for each row in the query regions
@@ -440,10 +412,9 @@ getGenicOverlapGenes <- function(regions.ranges, ann)
 
 	out
 }
+# --------------------------------------------------------------------
 
-# -----------------------------------------------------------------------------
-
-# ----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 # Find overlaps with upstream regions of genes
 # Input: before = number bps upstream of TSS, after = number bps downstream of TSS
 # Output:
@@ -467,9 +438,9 @@ getUpstreamOverlap <- function(regions.ranges, ann, before=1000, after=500)
 	#overlap[is.na(overlap)] <- 0
 	overlap
 }
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 
-# ----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 # Find overlaps with downstream regions of genes
 # Input: before = number bps upstream of txEnd, after = number bps downstream of txEnd
 # Output:
@@ -493,9 +464,9 @@ getDownstreamOverlap <- function(regions.ranges, ann, before=500, after=1000)
 	#overlap[is.na(overlap)] <- 0
 	overlap
 }
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 
-# ----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 # 3' UTR Overlaps (gaps between cdsEnd and txEnd)
 # Input:
 # Output:
@@ -528,10 +499,9 @@ get3primeUTROverlap <- function(regions.ranges, ann)
 	#overlap[is.na(overlap)] <- 0
 	overlap
 }
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 
-
-# ----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 # Overlaps with exons
 # Input: exon table from parseExons
 # Output:
@@ -543,14 +513,9 @@ getExonOverlap <- function(regions.ranges, ann.ex)
 	#overlap[is.na(overlap)] <- 0
 	overlap
 }
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 
-
-# =============================================================================
-
-# =============================================================================
-# Derive Sequence Context Variables - useful for propensity score matching
-
+# --------------------------------------------------------------------
 getRepeatPercent <- function(regions.ranges,rmsk)
 {
 	#intersect with rmsk table, then collapse into nonoverlapping regions covering all repeats - want the % coverage of these regions versus the entire sequence length
@@ -571,7 +536,9 @@ getRepeatPercent <- function(regions.ranges,rmsk)
 
 	per
 }
+# --------------------------------------------------------------------
 
+# --------------------------------------------------------------------
 getRepeatPercentFast <- function(regions.ranges,genome,cachedir)
 {
 	#intersect with rmsk table, then collapse into nonoverlapping regions covering all repeats - want the % coverage of these regions versus the entire sequence length
@@ -587,7 +554,9 @@ getRepeatPercentFast <- function(regions.ranges,genome,cachedir)
 
 	per
 }
+# --------------------------------------------------------------------
 
+# --------------------------------------------------------------------
 getDistTSS <- function(regions.ranges,ann)
 {
 	# create ranges object with just the TSS
@@ -609,7 +578,9 @@ getDistTSS <- function(regions.ranges,ann)
 	dtss <- as.data.frame(distanceToNearest(regions.ranges,ann.ranges))
 	dtss[,3]
 }
+# --------------------------------------------------------------------
 
+# --------------------------------------------------------------------
 #calculates from the center of the DMS rather than the nearest outer bound
 getDistTSSCenter <- function(regions.ranges, genome, cachedir)
 {
@@ -635,7 +606,9 @@ getDistTSSCenter <- function(regions.ranges, genome, cachedir)
 	dtss <- as.data.frame(distanceToNearest(centers.ranges,ann.ranges))
 	dtss[,3]
 }
+# --------------------------------------------------------------------
 
+# --------------------------------------------------------------------
 getDistTSE <- function(regions.ranges,genome,cachedir)
 {
 	# create ranges object with just the TSS
@@ -657,7 +630,9 @@ getDistTSE <- function(regions.ranges,genome,cachedir)
 	dtse <- as.data.frame(distanceToNearest(regions.ranges,ann.ranges))
 	dtse[,3]
 }
+# --------------------------------------------------------------------
 
+# --------------------------------------------------------------------
 getDistTSECenter <- function(regions.ranges,genome,cachedir)
 {
 	# create ranges object with just the TSS
@@ -681,11 +656,16 @@ getDistTSECenter <- function(regions.ranges,genome,cachedir)
 	dtse <- as.data.frame(distanceToNearest(centers.ranges,ann.ranges))
 	dtse[,3]
 }
+# --------------------------------------------------------------------
 
+# --------------------------------------------------------------------
 getFreqCpG <- function(seq)
 {
 	dinucleotideFrequency(seq,as.prob=TRUE)[,7]
 }
+# --------------------------------------------------------------------
+
+# ====================================================================
 
 
-# =============================================================================
+

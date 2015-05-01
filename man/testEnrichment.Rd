@@ -2,17 +2,21 @@
 % Please edit documentation in R/enrichment.r
 \name{testEnrichment}
 \alias{testEnrichment}
-\title{Make a GRanges from a data.frame or data.table with the fields "chr", "start", and "end"}
+\title{Test enrichment between a query set and a null set}
 \usage{
-testEnrichment(query, background, features)
+testEnrichment(query, null, features)
 }
 \arguments{
-\item{obj}{A data.frame or data.table with columns "chr", "start", and "end" and any other columns}
+\item{query}{A data.frame or data.table with columns "chr", "start", and "end" and any other columns. If a data.frame or data.table, must contain the columns "chr", "start", "end", where the "start" coordinates are 1-based.}
+
+\item{null}{A data.frame or data.table with columns "chr", "start", and "end" and any other columns. If a data.frame or data.table, must contain the columns "chr", "start", "end", where the "start" coordinates are 1-based.}
+
+\item{features}{A data.frame or data.table with columns "chr", "start", and "end" and any other columns. If a data.frame or data.table, must contain the columns "chr", "start", "end", where the "start" coordinates are 1-based. Additionally, there must be a column named "name" which will be used as a factor to divide the ranges into subsets. Each subset will be tested for enrichment individually.}
 }
 \value{
-A GRanges made from the data in obj.
+A table reporting enrichment results for each factor given in the "name" column in features.
 }
 \description{
-Given a data.frame or data.table with the columns "chr", "start", and "end", a GenomicRanges (GRanges) object will be created. All other columns will be passed on as metadata. If the input is already a GRanges, it is simply returned.
+Provide both a query set of ranges (as a GenomicRanges, data.frame, or data.table) and a null set of ranges (same format options). Counts for each feature will be computed in both the query and null sets, and tested for significance of difference using binom.test().
 }
 

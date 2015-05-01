@@ -1,72 +1,18 @@
 # Functions for testing enrichment between sets of genomic ranges and generating background sets
 
-# -----------------------------------------------------------------------------
-#' Make a GRanges from a data.frame or data.table with the fields "chr", "start", and "end"
+# ====================================================================
+# Exported Functions
+
+# --------------------------------------------------------------------
+#' Test enrichment between a query set and a null set
 #'
-#' Given a data.frame or data.table with the columns "chr", "start", and "end", a GenomicRanges (GRanges) object will be created. All other columns will be passed on as metadata. If the input is already a GRanges, it is simply returned. If the column "strand" exists, it will be set as the strand.
-#' @param obj A data.frame or data.table with columns "chr", "start", and "end" and any other columns
-#' @param strand Use the information in the "strand" column to set strand in the GRanges, if it is present.
-#' @return A GRanges made from the data in obj.
+#' Provide both a query set of ranges (as a GenomicRanges, data.frame, or data.table) and a null set of ranges (same format options). Counts for each feature will be computed in both the query and null sets, and tested for significance of difference using binom.test().
+#' @param query A data.frame or data.table with columns "chr", "start", and "end" and any other columns. If a data.frame or data.table, must contain the columns "chr", "start", "end", where the "start" coordinates are 1-based.
+#' @param null A data.frame or data.table with columns "chr", "start", and "end" and any other columns. If a data.frame or data.table, must contain the columns "chr", "start", "end", where the "start" coordinates are 1-based.
+#' @param features A data.frame or data.table with columns "chr", "start", and "end" and any other columns. If a data.frame or data.table, must contain the columns "chr", "start", "end", where the "start" coordinates are 1-based. Additionally, there must be a column named "name" which will be used as a factor to divide the ranges into subsets. Each subset will be tested for enrichment individually.
+#' @return A table reporting enrichment results for each factor given in the "name" column in features.
 #' @export
-makeGRanges <- function(obj, strand=F)
-{
-	if(class(obj)[1]=="GRanges")
-	{
-		# Return if it is already a GRanges
-		obj
-	} else if(is.data.frame(obj)==TRUE)
-	{
-		# Make GRanges if it is a data.frame
-		if(sum(c("chr", "start", "end") %in% colnames(obj))!=3)
-		{
-			stop("Could not find columns named \"chr\", \"start\", and \"end\" in input data.frame")
-		}
-		ret <- with(obj,GRanges(seqnames=chr,IRanges(start,end)))
-		if(("strand" %in% colnames(obj))&(strand==T))
-		{
-			strand(ret) <- obj$strand
-		}
-		skipcols <- c("chr","start","end","strand","width","element")
-		if(class(obj)[1]=="data.table")
-		{
-			values(ret) <- obj[,!(colnames(obj) %in% skipcols),with=F]
-		} else
-		{
-			values(ret) <- obj[,!(colnames(obj) %in% skipcols)]
-		}
-		ret
-	} else
-	{
-		# Some bad input, throw error
-		stop("GRanges, data.frame, or data.table object required as input")
-	}
-}
-# -----------------------------------------------------------------------------
-
-# Given two sets of genomic ranges, count the number of each type of features in the query
-countFeatures <- function(query.gr, features.gr)
-{
-	fo <- findOverlaps(query.gr, features.gr)
-	qh <- queryHits(fo)
-	sh <- subjectHits(fo)
-	query.hits <- data.frame(chr=seqnames(query.gr[qh]), start=start(query.gr[qh]), end=end(query.gr[qh]), name=features.gr[sh]$name)
-	query.hits$queryRegion <- with(query.hits,paste(chr, ":", start, "-", end, sep=""))
-	#query.counts <- ddply(query.hits, .(factor), summarize, nQueryRegions=length(unique(queryRegion)))
-	query.hits <- data.table(query.hits)
-	query.counts <- data.frame(query.hits[,list(nQueryRegions=length(unique(queryRegion))),by="name"])
-	query.counts
-}
-
-# -----------------------------------------------------------------------------
-
-# -----------------------------------------------------------------------------
-#' Make a GRanges from a data.frame or data.table with the fields "chr", "start", and "end"
-#'
-#' Given a data.frame or data.table with the columns "chr", "start", and "end", a GenomicRanges (GRanges) object will be created. All other columns will be passed on as metadata. If the input is already a GRanges, it is simply returned.
-#' @param obj A data.frame or data.table with columns "chr", "start", and "end" and any other columns
-#' @return A GRanges made from the data in obj.
-#' @export
-testEnrichment <- function(query, background, features)
+testEnrichment <- function(query, null, features)
 {
 	# Convert to GRanges
 	query.gr <- makeGRanges(query)
@@ -129,127 +75,16 @@ testEnrichment <- function(query, background, features)
 	out <- out[order(out$frac.diff, decreasing=TRUE),]
 	out
 }
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 
-# Draw random regions from anywhere in the genome with the same length distribution as the target set
-# Drawn output will not be in assembly gaps, will not run off chromosome ends, and will not overlap with each other
-drawBackgroundSetGenomic <- function(n, target.gr, genome, cachedir, chrs)
-{
-	#target.gr <- dmrs.gr
-	lens <- width(target.gr)
-	# duplicate the sizes by the number of regions we want to draw per size
-	lens <- rep(lens,n)
-
-	# Get chromosome lengths
-	chromsizes <- getUCSCTable("chromInfo", genome, cachedir)
-	chromsizes <- chromsizes[chromsizes$chrom %in% chrs,]
-
-	# Get gaps GR
-	gaps <- getUCSCTable("gap", genome, cachedir)
-	gaps.gr <- with(gaps, GRanges(seqnames=chrom, ranges=IRanges(start=chromStart+1, end=chromEnd)))
-
-	# Make empty draws.gr
-	draws.gr <- GRanges()
-
-	# For each size, draw n random non-gap positions
-	for(len in lens)
-	{
-		message("Finding length ", len)
-
-		isbad <- TRUE
-		while(isbad)
-		{
-			# Draw a random chr
-			chr <- sample(chrs,1)
-	
-			# Make bads GR of all regions within the chromosome size we don't want to draw from (gaps and previous drawn regions)
-			bad.gr <- reduce(c(gaps.gr, draws.gr))
-
-			# Draw random start position, up to the closest we can get to the chr end without running off based on our size
-			rand.start <- sample(1:(chromsizes[chromsizes$chrom==chr,]$size-len),1)
-			rand.gr <- GRanges(seqnames=chr, ranges=IRanges(start=rand.start, width=len))
-	
-			# Test if we drew into a bad region - need to redraw if we did
-			isbad <- rand.gr %over% bad.gr
-			message("Draw bad? ",isbad)
-		}
-		draws.gr <- suppressWarnings(c(draws.gr, rand.gr))
-
-	}
-	
-	draws.gr
-}
-
-# Do checks at the end so we can do draws in parallel
-drawBackgroundSetGenomicFast <- function(n, target.gr, genome, cachedir, chrs)
-{
-	#target.gr <- dmrs.gr
-	lens <- width(target.gr)
-	# duplicate the sizes by the number of regions we want to draw per size
-	lens <- rep(lens,n)
-
-	# Get chromosome lengths
-	chromsizes <- getUCSCTable("chromInfo", genome, cachedir)
-	chromsizes <- chromsizes[chromsizes$chrom %in% chrs,]
-
-	# Get gaps GR
-	gaps <- getUCSCTable("gap", genome, cachedir)
-	gaps.gr <- with(gaps, GRanges(seqnames=chrom, ranges=IRanges(start=chromStart+1, end=chromEnd)))
-
-	# For each size, draw n random non-gap positions
-
-	dodraw <- function(lens)
-	{
-		chrs <- sample(chrs,length(lens),replace=T)
-		dt <- data.table(len=lens,chr=chrs)
-		dt <- dt[,list(len=len, start=sample(1:(chromsizes[chromsizes$chrom==chr,]$size),length(len))), by=chr]
-		draw.gr <- GRanges(dt$chr,IRanges(start=dt$start,width=dt$len))
-		return(draw.gr)
-	}
-	draw.gr <- dodraw(lens)
-
-	# Exclude the bads and redraw them
-	isbad <- TRUE
-	iter <- 1
-	while(isbad)
-	{
-		# Check for overlapping regions
-		dups <- data.table(as.data.frame(findOverlaps(draw.gr,draw.gr)))
-		dups <- dups[queryHits!=subjectHits,]$queryHits
-		# Check for those that hit gap regions
-		gaps <- data.table(as.data.frame(findOverlaps(draw.gr,gaps.gr)))
-		gaps <- gaps[queryHits!=subjectHits,]$queryHits
-		# Check for those that extend beyond chr ends
-		if(sum(end(draw.gr) > chromsizes[match(as.vector(seqnames(draw.gr)),chromsizes$chrom),]$size)>0){bigs <- seq(1,length(draw.gr))[end(draw.gr) > chromsizes[match(as.vector(seqnames(draw.gr)),chromsizes$chrom),]$size]} else {bigs<-c()}
-		#seqlengths(draw.gr) <- chromsizes[match(seqlevels(draw.gr),chromsizes$chrom),]$size
-		#1:length(draw.gr)[end(draw.gr) > chromsizes[match(as.vector(seqnames(draw.gr)),chromsizes$chrom),]$size]
-
-		# Need to account for if they are both gaps and dups, otherwise we start building up extra lengths we don't need
-		# I fixed this by using unique()
-		toget <- unique(c(gaps,dups,bigs))
-
-		# Redraw these widths
-		if(length(toget)==0)
-		{
-			isbad <- FALSE
-		} else
-		{
-			message("Draw iter ",iter," had ", length(dups)," overlapping, ",length(gaps)," in gap regions, and ", length(bigs)," off chromosome ends. Redrawing these...")
-			iter <- iter+1
-			draw.gr <- c(draw.gr[-c(toget)],dodraw(width(draw.gr[c(toget)])))
-		}
-	}
-
-	# Make sure the length distribution of the output matches that of the input times the number of draws for each
-	if(!all((table(width(target.gr))*n)==table(width(draw.gr)))){stop("Final length tables did not match, the drawing did not work.")}
-
-	draw.gr
-}
-
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 #' Draw a length-matched pool of sequences from the genome
 #'
-#' Given a query set of ranges, draw a length-matched pool of sequences.
+#' Given a query set of ranges, draw a length-matched pool of sequences. Returned ranges are required to (1) not overlap with each other or the query, (2) not extend off chromosome ends, (3) not extend over assembly gaps as defined in the UCSC "gap" table for the given genome assembly.
+#' @param query A data.frame or data.table with columns "chr", "start", and "end" and any other columns. If a data.frame or data.table, must contain the columns "chr", "start", "end", where the "start" coordinates are 1-based.
+#' @param n Number of times greater than the query set that the size of the returned background pool will be
+#' @param genome The UCSC name specific to the genome of the query coordinates (e.g. "hg19", "hg18", "mm10", etc)
+#' @param cachedir A path to a directory where a local cache of UCSC tables are stored. If equal to \code{NULL} (default), the data will be downloaded to temporary files and loaded on the fly. Caching is highly recommended to save time and bandwidth.
 #' @return A GRanges of the background sequences.
 #' @export
 drawGenomePool <- function(query, n, genome, cachedir, chrs=NULL)
@@ -322,53 +157,23 @@ drawGenomePool <- function(query, n, genome, cachedir, chrs=NULL)
 
 	draw.gr
 }
+# --------------------------------------------------------------------
 
-
-# Wrappers
-
-
-diffmotif <- function(target.bed, pool.bed, feat.bed, match.n=1, formula="treat ~ sizeLog", outdir=".", genome, cachedir)
-{
-	suppressWarnings(dir.create(outdir))
-
-	# Load BED files -> GRanges
-	target <- fread(target.bed)
-	target.gr <- GRanges(target$V1,IRanges(target$V2,target$V3))
-	pool <- fread(pool.bed)
-	pool.gr <- with(pool,GRanges(V1,IRanges(V2,V3)))
-	feat <- fread(feat.bed)
-	feat.gr <- with(feat,GRanges(V1,IRanges(V2,V3),factor=V4))
-	
-	# Perform matching
-	formula <- as.formula(formula)
-	ref <- doPropMatch(target.gr,pool.gr,pdf=paste0(outdir,"/psm.pdf"),formula=formula,n=match.n,genome=genome,cachedir=cachedir)
-	ref.gr <- ref$ranges.ref
-
-	# Write FASTA
-	library(BSgenome.Hsapiens.UCSC.hg19)
-	bsg <- Hsapiens
-	fa1 <- getSeq(bsg,target.gr)
-	names(fa1) <- paste0(seqnames(target.gr),":",start(target.gr),"-",end(target.gr))
-	fa2 <- getSeq(bsg,ref.gr)
-	names(fa2) <- paste0(seqnames(ref.gr),":",start(ref.gr),"-",end(ref.gr))
-	writeXStringSet(fa2,paste0(outdir,"/ref.fa"))
-	writeXStringSet(fa1,paste0(outdir,"/target.fa"))
-
-	# Test Enrichment
-	te1 <- suppressWarnings(testEnrichment(target.gr,ref.gr,feat.gr))
-	write.csv(te1,file=paste0(outdir,"/enrich.csv"),row.names=F)
-
-	list(ref=ref,enrich=te1)
-}
-
-# -----------------------------------------------------------------------------
-#' Do PSM
+# --------------------------------------------------------------------
+#' Perform propensity score matching to draw a multi-variate matched set of sequences from a background pool
 #'
-#' PSM function
-#' @param obj A data.frame or data.table with columns "chr", "start", and "end" and any other columns
-#' @return A GRanges made from the data in obj.
+#' Given a query set and a background pool, draw a set of sequences from the background pool that most closely match the query set with respect to multiple co-variates.
+#' @param query A data.frame or data.table with columns "chr", "start", and "end" and any other columns. If a data.frame or data.table, must contain the columns "chr", "start", "end", where the "start" coordinates are 1-based.
+#' @param pool A data.frame or data.table with columns "chr", "start", and "end" and any other columns. If a data.frame or data.table, must contain the columns "chr", "start", "end", where the "start" coordinates are 1-based.
+#' @param outdir The function will write a PDF report of matching performance and FASTA files for both the query set and matched null set. Provide a directory in which to save these files.
+#' @param formula Formula used for matching. For example: "treat ~ sizeLog + freqCpG". The variable "treat" must always be given as the predicted variable. Combinations of predictors can be selected from the set of: size (length of sequence in bp), sizeLog (log of size - recommended for best matching performance), gc (GC%), freqCpG (dinucleotide frequency of CpG sites), freqA (frequency of the base A), freqT, freqC, freqG, repeatPer (% of sequence covered by repeat masked regions), distTSSCenterLogX1 (distance to transcription start sites, log transformed), and distTSECenterLogX1 (distance to transcription end sites, log transformed).
+#' @param n Number of times greater than the query the matched null set will be.
+#' @param bsg BString genome from which sequence data can be derived. For example, see the "BSgenome.Hsapiens.UCSC.hg19" for the "hg19" genome BSGenome package from Bioconductor. Similar packages exist for other genomes.
+#' @param genome The UCSC name specific to the genome of the query coordinates (e.g. "hg19", "hg18", "mm10", etc)
+#' @param cachedir A path to a directory where a local cache of UCSC tables are stored. If equal to \code{NULL} (default), the data will be downloaded to temporary files and loaded on the fly. Caching is highly recommended to save time and bandwidth.
+#' @return A list containing the sequences of both the target and pool along with a GRanges of the matched results which can be used as a null set in testEnrichment().
 #' @export
-doPropMatch <- function(target, pool, outdir=".", formula, n=1, bsg, genome, cachedir)
+doPropMatch <- function(query, pool, outdir=".", formula, n=1, bsg, genome, cachedir)
 {
 	dir.create(outdir,showWarnings=FALSE,recursive=TRUE)
 	target.gr <- makeGRanges(target)
@@ -433,33 +238,31 @@ doPropMatch <- function(target, pool, outdir=".", formula, n=1, bsg, genome, cac
 
 	list(query.seq=seq1, null.seq=seq2, ranges.null=pro.gr)
 }
+# --------------------------------------------------------------------
 
-# #############################################################################
-# Finds differentially enriched motifs
-# Author: Jeffrey Bhasin <jeffb@case.edu>
-# Created: 2013
-# #############################################################################
+# ====================================================================
 
-# =============================================================================
-# Packages and Globals
-#library(ShortRead)
-#library(plyr)
-#library(reshape)
-#library(foreach)
-#library(stringr)
-#library(ggplot2)
-#library(gridExtra)
-#library(Matching) # for Match()
-#library(rms)
-#library(doMC)
-#library(gplots) # for heatmap.2()
-#library(VennDiagram)
-# =============================================================================
+# ====================================================================
+# Internal Functions
 
-# =============================================================================
-# Utility
+# --------------------------------------------------------------------
+# Given two sets of genomic ranges, count the number of each type of features in the query
+countFeatures <- function(query.gr, features.gr)
+{
+	fo <- findOverlaps(query.gr, features.gr)
+	qh <- queryHits(fo)
+	sh <- subjectHits(fo)
+	query.hits <- data.frame(chr=seqnames(query.gr[qh]), start=start(query.gr[qh]), end=end(query.gr[qh]), name=features.gr[sh]$name)
+	query.hits$queryRegion <- with(query.hits,paste(chr, ":", start, "-", end, sep=""))
+	#query.counts <- ddply(query.hits, .(factor), summarize, nQueryRegions=length(unique(queryRegion)))
+	query.hits <- data.table(query.hits)
+	query.counts <- data.frame(query.hits[,list(nQueryRegions=length(unique(queryRegion))),by="name"])
+	query.counts
+}
 
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
+
+# --------------------------------------------------------------------
 # Make set of distinct color labels for plots
 # Input: n=number of colors to output, rand=shuffle color order or not
 # Output: Vector of hex color codes
@@ -473,9 +276,9 @@ genColors <- function(n, rand=FALSE)
 
 	pal
 }
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 # Clean-up of ggplot defaults (remove grid)
 # Input:
 # Output:
@@ -483,9 +286,9 @@ ggplot.clean <- function()
 {
 	theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), legend.key.size = grid::unit(0.8, "lines"), axis.line = element_line(colour = "grey50"))
 }
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 # Calculate GC content of a DNAString
 # Input: DNAStringSet object
 # Output: Vector of GC contents for each sequence in the DNAStringSet
@@ -499,50 +302,12 @@ getGC <- function(seq)
 	gc <- (g+c) / (a+t+g+c)
 	gc
 }
-# -----------------------------------------------------------------------------
-# =============================================================================
+# --------------------------------------------------------------------
 
-
-# =============================================================================
-# MEME Suite Interaction
-
-# -----------------------------------------------------------------------------
-#' Wrapper to call FIMO using system()
-#'
-#' If FIMO from the MEME Suite is installed and in the current PATH, this provides an easy interface
-#' to run it from R.
-#'
-#' @param out.path path where output will be written
-#' @param fasta.path path to FASTA file of input sequences
-#' @param motifs.path path to MEME format file containing motif database to use
-#' @export
-runFIMO <- function(out.path,fasta.path,motifs.path)
-{
-	system(paste("fimo -oc ",out.path," ",motifs.path," ",fasta.path,sep=""))
-}
-# -----------------------------------------------------------------------------
-
-# -----------------------------------------------------------------------------
-#' Read in a FIMO output file
-#'
-#' Wrapper of read.table() with correct options for reading in a FIMO output text file.
-#'
-#' @param fimo.out.path path to FIMO output text file
-#' @export
-readFIMO <- function(fimo.out.path)
-{
-	read.table(file=fimo.out.path,header=TRUE,comment.char="",sep="\t")
-}
-# -----------------------------------------------------------------------------
-# =============================================================================
-
-# =============================================================================
-# Background Sequence Generation
-
+# --------------------------------------------------------------------
 #' Calculate covariates for each sequence in a DNAStringSet
 #' @param myseq DNAStringSet object of the sequence set
 #' @return dataframe with standard covariates added
-#' @export
 getSeqMeta <- function(ranges,bsgenome,genome,cachedir)
 {
 	# Input as GRanges
@@ -597,9 +362,9 @@ getSeqMeta <- function(ranges,bsgenome,genome,cachedir)
 	ret <- list(seq=seq,meta=seq.meta)
 	ret
 }
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 #' Draw a matched reference set from a reference pool
 #'
 #' Use propensity score matching to create a covariate-matched reference set. Note that the matching function is sensitive to the starting order of the input data. This order is required as a variable so it can be fixed between runs.
@@ -611,7 +376,6 @@ getSeqMeta <- function(ranges,bsgenome,genome,cachedir)
 #' @param formula an \code{as.formula} object for the regression used to generate propensity scores
 #' @param start.order vector of starting order for matching (must be a sequence of integers in any order from 1 to the total number of sequences in both target.seq and pool.seq)
 #' @return \code{DNAStringSet} object of a covariate-matched reference set
-#' @export
 drawBackgroundSetPropensity <- function(target.seq, target.meta, pool.seq, pool.meta, formula, start.order, n=1)
 {
 	# setting binary value for group assignment
@@ -644,14 +408,66 @@ drawBackgroundSetPropensity <- function(target.seq, target.meta, pool.seq, pool.
 	ret <- pool.meta[m,]
 	ret
 }
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 
-# =============================================================================
+# --------------------------------------------------------------------
+#' Perform binomial test of enrichment for motifs using counts of occurrences in two sequence sets
+#'
+#' The *.counts matrix objects must first be generated using \code{\link{calcMotifCounts}}. The current implementation only considers if a sequence has at least one occurrence of the motif or not, and does not account for or weight multiple occurrences of a motif in a single sequence. The contingency table is simply based on the number of sequences which contain at least one occurrence of each motif.
+#'
+#' @param seq1.counts output object (matrix) from \code{\link{calcMotifCounts}} for first sequence set
+#' @param seq1.nSeqs number of sequences in first sequence set
+#' @param seq2.counts output object from \code{\link{calcMotifCounts}} for second sequence set
+#' @param seq2.nSeqs number of sequences in second sequence set
+#' @return dataframe of output results including p-values (unadjusted)
+calcEnrichmentBinom <- function(seq1.counts,seq1.nSeqs,seq2.counts,seq2.nSeqs)
+{
+	#input: count matrices (sequences vs motifs) for two runs of FIMO, number of seqs for each set
+	#output: enrichment p-values for each motif
 
-# =============================================================================
-# Plots
+	#calculate frequencies for each motif in each set of sequences
+	#consider each occurance of motif only once: convert counts >1 to be 1 so we can easily sum each row to get counts
+	makeBinary <- function(value)
+	{
+		if(value>1)
+		{
+			value <- 1
+		}
+		value
+	}
+	counts1.bin <- apply(seq1.counts,MARGIN=c(1,2),FUN=makeBinary)	
+	counts2.bin <- apply(seq2.counts,MARGIN=c(1,2),FUN=makeBinary)
 
-# -----------------------------------------------------------------------------
+	pvalues <- foreach(i=1:nrow(counts1.bin),.combine=rbind) %dopar%
+	{
+		#Using binom.test:
+		#x = num successes = total count of sequences with one or more instance of motif found by FIMO
+		myX <- sum(counts1.bin[i,])
+		#n = num trials = number of sequences
+		myN <- seq1.nSeqs
+		#p = prob of success = count of seqs with >=1 instance in background divided by total seqs in background	
+		if(rownames(counts1.bin)[1] %in% rownames(counts2.bin))
+		{
+			#if motif shows up in background set
+			#extract row with matching motif name and calculate frequency
+			myP <- sum(counts2.bin[rownames(counts2.bin) %in% rownames(counts1.bin)[i],])/seq2.nSeqs
+		} else
+		{
+			#if motif did not show up in background set
+			#print("Instance w/o same motif in both")
+			myP <- 0
+		}
+
+		pValue <- binom.test(x=myX, n=myN, p=myP, alternative="greater")$p.value
+
+		data.frame(motif=rownames(counts1.bin)[i],pvalue=pValue,percent_seqs=((myX/myN)*100))
+	}
+
+	pvalues
+}
+# --------------------------------------------------------------------
+
+# --------------------------------------------------------------------
 #' Plot histograms in a grid for arbitrary number of variables
 #'
 #' Plots non-overlapping single histograms in a grid for all covariate data in a dataframe.
@@ -659,7 +475,6 @@ drawBackgroundSetPropensity <- function(target.seq, target.meta, pool.seq, pool.
 #' @param seq.meta data.frame of sequence covariates
 #' @param cols vector of which columns to plot histograms for from seq.meta
 #' @return plot sent to current graphics device
-#' @export
 plotCovarHistograms <- function(seq.meta,cols)
 {
 	# do we need arguments to take filtering and breaks options?
@@ -683,9 +498,9 @@ plotCovarHistograms <- function(seq.meta,cols)
 	}
 	do.call(grid.arrange,p)
 }
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 #' Plot overlapping histograms for any number of variables from 2 sets
 #'
 #' Plots a grid of overlapping histograms. Data for seq1 will appear in red and seq2 in blue. The region where the distributions will appear in purple.
@@ -696,7 +511,6 @@ plotCovarHistograms <- function(seq.meta,cols)
 #' @param plot.ncols number of columns in the plotted grid
 #' @param main title for the grid of plots (useful if you want to put on the formula you used to generate seq2.meta)
 #' @return plot to active graphics device
-#' @export
 plotCovarHistogramsOverlap <- function(seq1.meta,seq2.meta,cols,plot.ncols=3, main="")
 {
 	# do we need arguments to take filtering and breaks options?
@@ -747,9 +561,9 @@ plotCovarHistogramsOverlap <- function(seq1.meta,seq2.meta,cols,plot.ncols=3, ma
 	g <- do.call(gridExtra::arrangeGrob,p)
 	gridExtra::grid.arrange(g, legend, heights=grid::unit(c(7.5,0.5),"in"),nrow=2,ncol=1)
 }
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 #' Plot QQ plots in a grid for arbitrary number of variables
 #'
 #' Creates QQ plots to compare two distributions for any number of variables
@@ -759,7 +573,6 @@ plotCovarHistogramsOverlap <- function(seq1.meta,seq2.meta,cols,plot.ncols=3, ma
 #' @param cols which columns have covariates to plot from the above dataframes
 #' @param plot.ncols how many columns the plotted grid should have
 #' @return plot to active graphics device
-#' @export
 plotCovarQQ <- function(orig.meta,list.meta,cols,plot.ncols=3)
 {
 	ggplot.qq <- function(d,i)
@@ -792,9 +605,9 @@ plotCovarQQ <- function(orig.meta,list.meta,cols,plot.ncols=3)
 	#grid.arrange(g, legend, widths=unit(c(7.5,0.5),"in"), main="QQ Plots",nrow=1,ncol=2)
 	gridExtra::grid.arrange(g, main="QQ Plots")
 }
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 #' Plot horizontal graph of covariate distance from different propensity models
 #'
 #' Horizontal graph plots a point for each variable that represents the distance between that variable's value in orig.meta and each of the dataframes in list.meta
@@ -803,7 +616,6 @@ plotCovarQQ <- function(orig.meta,list.meta,cols,plot.ncols=3)
 #' @param list.meta a list of dataframes of covariates from other sets you want to compare to the target set
 #' @param cols vector of which columns to use from the dataframes above
 #' @return plots to active graphics device
-#' @export
 plotCovarDistance <- function(orig.meta,list.meta,cols)
 {
 	stddist <- function(d1, d2)
@@ -839,92 +651,7 @@ plotCovarDistance <- function(orig.meta,list.meta,cols)
 
 	ggplot(plot.data, aes(x=variable,y=stddist,col=matching)) + geom_point(data=plot.data,size=3) + theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_line(linetype=3, colour="grey50"), panel.grid.minor = element_blank(), panel.background = element_blank(), legend.key.size = grid::unit(0.8, "lines"), axis.line = element_line(colour = "grey50"), axis.text=element_text(colour="black")) + geom_abline(intercept=0,slope=0,col="grey50") + coord_flip() + labs(main="Covariate Balance",y="Standardized Distance") + scale_colour_manual(values = genColors(length(list.meta)))
 }
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------
 
-# =============================================================================
-
-# =============================================================================
-# Enrichment Testing
-
-# -----------------------------------------------------------------------------
-#' Perform binomial test of enrichment for motifs using counts of occurrences in two sequence sets
-#'
-#' The *.counts matrix objects must first be generated using \code{\link{calcMotifCounts}}. The current implementation only considers if a sequence has at least one occurrence of the motif or not, and does not account for or weight multiple occurrences of a motif in a single sequence. The contingency table is simply based on the number of sequences which contain at least one occurrence of each motif.
-#'
-#' @param seq1.counts output object (matrix) from \code{\link{calcMotifCounts}} for first sequence set
-#' @param seq1.nSeqs number of sequences in first sequence set
-#' @param seq2.counts output object from \code{\link{calcMotifCounts}} for second sequence set
-#' @param seq2.nSeqs number of sequences in second sequence set
-#' @return dataframe of output results including p-values (unadjusted)
-#' @export
-calcEnrichmentBinom <- function(seq1.counts,seq1.nSeqs,seq2.counts,seq2.nSeqs)
-{
-	#input: count matrices (sequences vs motifs) for two runs of FIMO, number of seqs for each set
-	#output: enrichment p-values for each motif
-
-	#calculate frequencies for each motif in each set of sequences
-	#consider each occurance of motif only once: convert counts >1 to be 1 so we can easily sum each row to get counts
-	makeBinary <- function(value)
-	{
-		if(value>1)
-		{
-			value <- 1
-		}
-		value
-	}
-	counts1.bin <- apply(seq1.counts,MARGIN=c(1,2),FUN=makeBinary)	
-	counts2.bin <- apply(seq2.counts,MARGIN=c(1,2),FUN=makeBinary)
-
-	pvalues <- foreach(i=1:nrow(counts1.bin),.combine=rbind) %dopar%
-	{
-		#Using binom.test:
-		#x = num successes = total count of sequences with one or more instance of motif found by FIMO
-		myX <- sum(counts1.bin[i,])
-		#n = num trials = number of sequences
-		myN <- seq1.nSeqs
-		#p = prob of success = count of seqs with >=1 instance in background divided by total seqs in background	
-		if(rownames(counts1.bin)[1] %in% rownames(counts2.bin))
-		{
-			#if motif shows up in background set
-			#extract row with matching motif name and calculate frequency
-			myP <- sum(counts2.bin[rownames(counts2.bin) %in% rownames(counts1.bin)[i],])/seq2.nSeqs
-		} else
-		{
-			#if motif did not show up in background set
-			#print("Instance w/o same motif in both")
-			myP <- 0
-		}
-
-		pValue <- binom.test(x=myX, n=myN, p=myP, alternative="greater")$p.value
-
-		data.frame(motif=rownames(counts1.bin)[i],pvalue=pValue,percent_seqs=((myX/myN)*100))
-	}
-
-	pvalues
-}
-# -----------------------------------------------------------------------------
-
-# -----------------------------------------------------------------------------
-#' Generate counts of motif occurrences in each sequence
-#'
-#' @param fimo.out dataframe from \code{\link{readFIMO}} dataframe object
-#' @param q.cutoff only count a motif if the q-value is less than this cutoff
-#'
-#' @return matrix with pairwise counts of each motif and each sequence
-#' @export
-calcMotifCounts <- function(fimo.out, q.cutoff)
-{
-	#input: dataframe of fimo's text output, q value cutoff
-	#output: matrix of frequencies with a row for every motif and column for every sequence
-
-	fimo.out.filtered <- fimo.out[fimo.out$q.value<q.cutoff,]
-
-	fimo.out.filtered$X.pattern.name <- as.character(fimo.out.filtered$X.pattern.name)
-	fimo.out.filtered$sequence.name <- as.character(fimo.out.filtered$sequence.name)
-
-	tm <- table(fimo.out.filtered$X.pattern.name,fimo.out.filtered$sequence.name)
-}
-# -----------------------------------------------------------------------------
-
-# =============================================================================
+# ====================================================================
 
