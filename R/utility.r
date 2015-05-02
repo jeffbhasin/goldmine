@@ -32,10 +32,16 @@ makeGRanges <- function(obj, strand=F)
 		skipcols <- c("chr","start","end","strand","width","element")
 		if(class(obj)[1]=="data.table")
 		{
-			values(ret) <- obj[,!(colnames(obj) %in% skipcols),with=F]
+			if(sum(colnames(obj) %in% skipcols)!=ncol(obj))
+			{
+				values(ret) <- obj[,!(colnames(obj) %in% skipcols),with=F]
+			}
 		} else
 		{
-			values(ret) <- obj[,!(colnames(obj) %in% skipcols)]
+			if(sum(colnames(obj) %in% skipcols)!=ncol(obj))
+			{
+				values(ret) <- obj[,!(colnames(obj) %in% skipcols)]
+			}
 		}
 		ret
 	} else
