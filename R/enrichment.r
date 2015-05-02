@@ -166,7 +166,7 @@ drawGenomePool <- function(query, n, genome, cachedir, chrs=NULL)
 #' @param query A data.frame or data.table with columns "chr", "start", and "end" and any other columns. If a data.frame or data.table, must contain the columns "chr", "start", "end", where the "start" coordinates are 1-based.
 #' @param pool A data.frame or data.table with columns "chr", "start", and "end" and any other columns. If a data.frame or data.table, must contain the columns "chr", "start", "end", where the "start" coordinates are 1-based.
 #' @param outdir The function will write a PDF report of matching performance and FASTA files for both the query set and matched null set. Provide a directory in which to save these files.
-#' @param formula Formula used for matching. For example: "treat ~ sizeLog + freqCpG". The variable "treat" must always be given as the predicted variable. Combinations of predictors can be selected from the set of: size (length of sequence in bp), sizeLog (log of size - recommended for best matching performance), gc (GC%), freqCpG (dinucleotide frequency of CpG sites), freqA (frequency of the base A), freqT, freqC, freqG, repeatPer (% of sequence covered by repeat masked regions), distTSSCenterLogX1 (distance to transcription start sites, log transformed), and distTSECenterLogX1 (distance to transcription end sites, log transformed).
+#' @param formula Formula used for matching. For example: "treat ~ sizeLog + freqCpG". The variable "treat" must always be given as the predicted variable. Combinations of predictors can be selected from the set of: size (length of sequence in bp), sizeLog (log of size - recommended for best matching performance), gc (GC percent), freqCpG (dinucleotide frequency of CpG sites), freqA (frequency of the base A), freqT, freqC, freqG, repeatPer (percent of sequence covered by repeat masked regions), distTSSCenterLogX1 (distance to transcription start sites, log transformed), and distTSECenterLogX1 (distance to transcription end sites, log transformed).
 #' @param n Number of times greater than the query the matched null set will be.
 #' @param bsg BString genome from which sequence data can be derived. For example, see the "BSgenome.Hsapiens.UCSC.hg19" for the "hg19" genome BSGenome package from Bioconductor. Similar packages exist for other genomes.
 #' @param genome The UCSC name specific to the genome of the query coordinates (e.g. "hg19", "hg18", "mm10", etc)
@@ -305,9 +305,9 @@ getGC <- function(seq)
 # --------------------------------------------------------------------
 
 # --------------------------------------------------------------------
-#' Calculate covariates for each sequence in a DNAStringSet
-#' @param myseq DNAStringSet object of the sequence set
-#' @return dataframe with standard covariates added
+# Calculate covariates for each sequence in a DNAStringSet
+# @param myseq DNAStringSet object of the sequence set
+# @return dataframe with standard covariates added
 getSeqMeta <- function(ranges,bsgenome,genome,cachedir)
 {
 	# Input as GRanges
@@ -365,17 +365,17 @@ getSeqMeta <- function(ranges,bsgenome,genome,cachedir)
 # --------------------------------------------------------------------
 
 # --------------------------------------------------------------------
-#' Draw a matched reference set from a reference pool
-#'
-#' Use propensity score matching to create a covariate-matched reference set. Note that the matching function is sensitive to the starting order of the input data. This order is required as a variable so it can be fixed between runs.
-#'
-#' @param target.seq \code{DNAStringSet} object of the target set
-#' @param target.meta \code{data.frame} object with the covariates of the target set
-#' @param pool.seq \code{DNAStringSet} object of the reference pool to draw covariate matched reference set from
-#' @param pool.meta \code{data.frame} object with the covariates
-#' @param formula an \code{as.formula} object for the regression used to generate propensity scores
-#' @param start.order vector of starting order for matching (must be a sequence of integers in any order from 1 to the total number of sequences in both target.seq and pool.seq)
-#' @return \code{DNAStringSet} object of a covariate-matched reference set
+# Draw a matched reference set from a reference pool
+#
+# Use propensity score matching to create a covariate-matched reference set. Note that the matching function is sensitive to the starting order of the input data. This order is required as a variable so it can be fixed between runs.
+#
+# @param target.seq \code{DNAStringSet} object of the target set
+# @param target.meta \code{data.frame} object with the covariates of the target set
+# @param pool.seq \code{DNAStringSet} object of the reference pool to draw covariate matched reference set from
+# @param pool.meta \code{data.frame} object with the covariates
+# @param formula an \code{as.formula} object for the regression used to generate propensity scores
+# @param start.order vector of starting order for matching (must be a sequence of integers in any order from 1 to the total number of sequences in both target.seq and pool.seq)
+# @return \code{DNAStringSet} object of a covariate-matched reference set
 drawBackgroundSetPropensity <- function(target.seq, target.meta, pool.seq, pool.meta, formula, start.order, n=1)
 {
 	# setting binary value for group assignment
@@ -411,15 +411,15 @@ drawBackgroundSetPropensity <- function(target.seq, target.meta, pool.seq, pool.
 # --------------------------------------------------------------------
 
 # --------------------------------------------------------------------
-#' Perform binomial test of enrichment for motifs using counts of occurrences in two sequence sets
-#'
-#' The *.counts matrix objects must first be generated using \code{\link{calcMotifCounts}}. The current implementation only considers if a sequence has at least one occurrence of the motif or not, and does not account for or weight multiple occurrences of a motif in a single sequence. The contingency table is simply based on the number of sequences which contain at least one occurrence of each motif.
-#'
-#' @param seq1.counts output object (matrix) from \code{\link{calcMotifCounts}} for first sequence set
-#' @param seq1.nSeqs number of sequences in first sequence set
-#' @param seq2.counts output object from \code{\link{calcMotifCounts}} for second sequence set
-#' @param seq2.nSeqs number of sequences in second sequence set
-#' @return dataframe of output results including p-values (unadjusted)
+# Perform binomial test of enrichment for motifs using counts of occurrences in two sequence sets
+#
+# The *.counts matrix objects must first be generated using \code{\link{calcMotifCounts}}. The current implementation only considers if a sequence has at least one occurrence of the motif or not, and does not account for or weight multiple occurrences of a motif in a single sequence. The contingency table is simply based on the number of sequences which contain at least one occurrence of each motif.
+#
+# @param seq1.counts output object (matrix) from \code{\link{calcMotifCounts}} for first sequence set
+# @param seq1.nSeqs number of sequences in first sequence set
+# @param seq2.counts output object from \code{\link{calcMotifCounts}} for second sequence set
+# @param seq2.nSeqs number of sequences in second sequence set
+# @return dataframe of output results including p-values (unadjusted)
 calcEnrichmentBinom <- function(seq1.counts,seq1.nSeqs,seq2.counts,seq2.nSeqs)
 {
 	#input: count matrices (sequences vs motifs) for two runs of FIMO, number of seqs for each set
@@ -468,13 +468,13 @@ calcEnrichmentBinom <- function(seq1.counts,seq1.nSeqs,seq2.counts,seq2.nSeqs)
 # --------------------------------------------------------------------
 
 # --------------------------------------------------------------------
-#' Plot histograms in a grid for arbitrary number of variables
-#'
-#' Plots non-overlapping single histograms in a grid for all covariate data in a dataframe.
-#'
-#' @param seq.meta data.frame of sequence covariates
-#' @param cols vector of which columns to plot histograms for from seq.meta
-#' @return plot sent to current graphics device
+# Plot histograms in a grid for arbitrary number of variables
+#
+# Plots non-overlapping single histograms in a grid for all covariate data in a dataframe.
+#
+# @param seq.meta data.frame of sequence covariates
+# @param cols vector of which columns to plot histograms for from seq.meta
+# @return plot sent to current graphics device
 plotCovarHistograms <- function(seq.meta,cols)
 {
 	# do we need arguments to take filtering and breaks options?
@@ -501,16 +501,16 @@ plotCovarHistograms <- function(seq.meta,cols)
 # --------------------------------------------------------------------
 
 # --------------------------------------------------------------------
-#' Plot overlapping histograms for any number of variables from 2 sets
-#'
-#' Plots a grid of overlapping histograms. Data for seq1 will appear in red and seq2 in blue. The region where the distributions will appear in purple.
-#'
-#' @param seq1.meta dataframe of covariates from first distribution
-#' @param seq2.meta dataframe of covariates from second distribution
-#' @param cols which columns in the *.meta dataframes contain covariate data to plot
-#' @param plot.ncols number of columns in the plotted grid
-#' @param main title for the grid of plots (useful if you want to put on the formula you used to generate seq2.meta)
-#' @return plot to active graphics device
+# Plot overlapping histograms for any number of variables from 2 sets
+#
+# Plots a grid of overlapping histograms. Data for seq1 will appear in red and seq2 in blue. The region where the distributions will appear in purple.
+#
+# @param seq1.meta dataframe of covariates from first distribution
+# @param seq2.meta dataframe of covariates from second distribution
+# @param cols which columns in the *.meta dataframes contain covariate data to plot
+# @param plot.ncols number of columns in the plotted grid
+# @param main title for the grid of plots (useful if you want to put on the formula you used to generate seq2.meta)
+# @return plot to active graphics device
 plotCovarHistogramsOverlap <- function(seq1.meta,seq2.meta,cols,plot.ncols=3, main="")
 {
 	# do we need arguments to take filtering and breaks options?
@@ -564,15 +564,15 @@ plotCovarHistogramsOverlap <- function(seq1.meta,seq2.meta,cols,plot.ncols=3, ma
 # --------------------------------------------------------------------
 
 # --------------------------------------------------------------------
-#' Plot QQ plots in a grid for arbitrary number of variables
-#'
-#' Creates QQ plots to compare two distributions for any number of variables
-#'
-#' @param orig.meta data frame from the original distribution
-#' @param list.meta list of data frames for all the distributions to compare to for each variable
-#' @param cols which columns have covariates to plot from the above dataframes
-#' @param plot.ncols how many columns the plotted grid should have
-#' @return plot to active graphics device
+# Plot QQ plots in a grid for arbitrary number of variables
+#
+# Creates QQ plots to compare two distributions for any number of variables
+#
+# @param orig.meta data frame from the original distribution
+# @param list.meta list of data frames for all the distributions to compare to for each variable
+# @param cols which columns have covariates to plot from the above dataframes
+# @param plot.ncols how many columns the plotted grid should have
+# @return plot to active graphics device
 plotCovarQQ <- function(orig.meta,list.meta,cols,plot.ncols=3)
 {
 	ggplot.qq <- function(d,i)
@@ -608,14 +608,14 @@ plotCovarQQ <- function(orig.meta,list.meta,cols,plot.ncols=3)
 # --------------------------------------------------------------------
 
 # --------------------------------------------------------------------
-#' Plot horizontal graph of covariate distance from different propensity models
-#'
-#' Horizontal graph plots a point for each variable that represents the distance between that variable's value in orig.meta and each of the dataframes in list.meta
-#'
-#' @param orig.meta dataframe of covariates from the target set you are trying to match
-#' @param list.meta a list of dataframes of covariates from other sets you want to compare to the target set
-#' @param cols vector of which columns to use from the dataframes above
-#' @return plots to active graphics device
+# Plot horizontal graph of covariate distance from different propensity models
+#
+# Horizontal graph plots a point for each variable that represents the distance between that variable's value in orig.meta and each of the dataframes in list.meta
+#
+# @param orig.meta dataframe of covariates from the target set you are trying to match
+# @param list.meta a list of dataframes of covariates from other sets you want to compare to the target set
+# @param cols vector of which columns to use from the dataframes above
+# @return plots to active graphics device
 plotCovarDistance <- function(orig.meta,list.meta,cols)
 {
 	stddist <- function(d1, d2)

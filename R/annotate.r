@@ -373,6 +373,7 @@ getGeneModels <- function(genes=getGenes(geneset="ucsc", genome=genome, cachedir
 #' @export
 getFeatures <- function(tables=c("wgEncodeRegDnaseClusteredV3","wgEncodeRegTfbsClusteredV3"), genome, cachedir)
 {
+	#if(genome!="hg19"){stop("This shortcut function is designed for genome hg19 only. Pleasure use getUCSCTable() to build feature sets for any other UCSC genome as desired.")}
 	#tables <- c("wgEncodeRegDnaseClusteredV2","wgEncodeRegTfbsClusteredV3","tfbsConsSites","gwasCatalog", "pubsBlat", "cosmic", "oreganno", "vistaEnhancers", "phastConsElements100way")
 
 	#c("wgEncodeRegDnaseClusteredV2","wgEncodeRegTfbsClusteredV3","tfbsConsSites","gwasCatalog", "pubsBlat", "cosmic", "oreganno", "vistaEnhancers", "phastConsElements100way")
@@ -435,7 +436,7 @@ getCpgFeatures <- function(genome, cachedir)
 # Internal function to calculate % overlaps for report format
 # special version to retain a srow and return this back to us for mapping back to the query vs genes intersect set
 # reports percent of GENE MODEL FEATURE overlapped, not percent of query that overlaps with it
-# return DF of srow from original kg and qrow from original input ranges. We'll then use these to join these features back into the original query<->genes overlap table we're already started constructing. The NAs can then simply be cast over to 0.
+# return DF of srow from original kg and qrow from original input ranges. We'll then use these to join these features back into the original query<->genes overlap table we're already started contructing. The NAs can then simply be cast over to 0.
 calcOverlapForReport <- function(query.gr, subject.gr, all=TRUE)
 {
 	#subject.gr <- reduce(subject.gr)

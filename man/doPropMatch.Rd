@@ -14,7 +14,7 @@ doPropMatch(query, pool, outdir = ".", formula, n = 1, bsg, genome,
 
 \item{outdir}{The function will write a PDF report of matching performance and FASTA files for both the query set and matched null set. Provide a directory in which to save these files.}
 
-\item{formula}{Formula used for matching. For example: "treat ~ sizeLog + freqCpG". The variable "treat" must always be given as the predicted variable. Combinations of predictors can be selected from the set of: size (length of sequence in bp), sizeLog (log of size - recommended for best matching performance), gc (GC%), freqCpG (dinucleotide frequency of CpG sites), freqA (frequency of the base A), freqT, freqC, freqG, repeatPer (% of sequence covered by repeat masked regions), distTSSCenterLogX1 (distance to transcription start sites, log transformed), and distTSECenterLogX1 (distance to transcription end sites, log transformed).}
+\item{formula}{Formula used for matching. For example: "treat ~ sizeLog + freqCpG". The variable "treat" must always be given as the predicted variable. Combinations of predictors can be selected from the set of: size (length of sequence in bp), sizeLog (log of size - recommended for best matching performance), gc (GC percent), freqCpG (dinucleotide frequency of CpG sites), freqA (frequency of the base A), freqT, freqC, freqG, repeatPer (percent of sequence covered by repeat masked regions), distTSSCenterLogX1 (distance to transcription start sites, log transformed), and distTSECenterLogX1 (distance to transcription end sites, log transformed).}
 
 \item{n}{Number of times greater than the query the matched null set will be.}
 
