@@ -37,7 +37,7 @@ goldmine <- function(query, genes=getGenes(geneset="ucsc", genome=genome, cached
 	query.gr$qrow <- 1:length(query.gr)
 
 	# Extract gene models
-	genemodels <- suppressWarnings(goldmine:::getGeneModels(genes=genes.gr, promoter=promoter, end3=end3, genome=genome, cachedir=cachedir))
+	genemodels <- suppressWarnings(goldmine:::getGeneModels(genes=genes.gr, promoter=promoter, end3=end3, genome=genome, cachedir=cachedir, sync=sync))
 
 	# Do the context annotation ("wide format" - returns same rows as original plus annotation columns)
 	message("Generating context annotation - genes")
