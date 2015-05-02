@@ -2,5 +2,5 @@
 #'
 #' @name goldmine-package
 #' @docType package
-#' @import GenomicRanges IRanges stringr data.table ggplot2 parallel
+#' @import GenomicRanges IRanges stringr data.table ggplot2
 NULL

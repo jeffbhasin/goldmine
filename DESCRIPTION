@@ -15,7 +15,6 @@ Depends:
     data.table,
     stringr,
     ggplot2,
-    parallel,
     IRanges
 Imports: 
     httr,
