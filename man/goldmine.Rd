@@ -5,7 +5,8 @@
 \title{Explore relationships between a set of genomic ranges and known genes/features}
 \usage{
 goldmine(query, genes = getGenes(geneset = "ucsc", genome = genome, cachedir =
-  cachedir), features = list(), genome, cachedir)
+  cachedir), features = list(), promoter = c(1000, 500), end3 = c(1000,
+  1000), genome, cachedir, sync = TRUE)
 }
 \arguments{
 \item{query}{A GenomicRanges, data.frame, or data.table of regions to annotate. If a data.frame or data.table, must contain the columns "chr", "start", "end", where the "start" coordinates are 1-based. All additional columns will be retained in the output object.}
@@ -14,9 +15,15 @@ goldmine(query, genes = getGenes(geneset = "ucsc", genome = genome, cachedir =
 
 \item{features}{A list() of GenomicRanges, data.table, or data.frame objects giving feature sets of interest. If a data.frame or data.table, must contain the columns "chr", "start", "end", where the "start" coordinates are 1-based. All additional columns will be retained in the output object. See also the getFeatures() function.}
 
+\item{promoter}{A numeric vector of length 2 specifying the number of bp upstream and downstream of transcription start sites for which to create promoter ranges. Given as c(upstream,downstream). Note that "upstream" in the context of the 5' end of the gene means out from the gene body.}
+
+\item{end3}{A numeric vector of length 2 specifying the number of bp upstream and downstream of transcription end sites for which to create gene 3' end ranges. Given as c(upstream,downstream). Note that "upstream" in the context of the 3' end of the gene means into the gene body.}
+
 \item{genome}{The UCSC name specific to the genome of the query coordinates (e.g. "hg19", "hg18", "mm10", etc)}
 
 \item{cachedir}{A path to a directory where a local cache of UCSC tables are stored. If equal to \code{NULL} (default), the data will be downloaded to temporary files and loaded on the fly. Caching is highly recommended to save time and bandwidth.}
+
+\item{sync}{If TRUE, then check if newer versions of UCSC tables are available and download them if so. If FALSE, skip this check. Can be used to freeze data versions in an analysis-specific cachedir for reproducibility.}
 }
 \value{
 A list: "context" shows a percent overlap for each range in the query set with gene model regions and each feature set ("wide" format - same number of rows as the query and in the same order), "genes" contains a detailed view of each query region overlap with individual gene isoforms ("long" format - a row for each pair of query and isoform overlaps), "features" is a list of tables which for each table given in the "features" argument which contain a row for each instance of a query region overlapping with a feature region (also "long" format).

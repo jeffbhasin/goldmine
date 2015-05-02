@@ -5,7 +5,7 @@
 \title{Obtain feature sets from UCSC genome browser tables}
 \usage{
 getFeatures(tables = c("wgEncodeRegDnaseClusteredV3",
-  "wgEncodeRegTfbsClusteredV3"), genome, cachedir)
+  "wgEncodeRegTfbsClusteredV3"), genome, cachedir, sync = TRUE)
 }
 \arguments{
 \item{tables}{A vector of table names from UCSC (default: DnaseI and TFBS from encode for hg19).}
@@ -13,6 +13,8 @@ getFeatures(tables = c("wgEncodeRegDnaseClusteredV3",
 \item{genome}{The UCSC name specific to the genome of the query coordinates (e.g. "hg19", "hg18", "mm10", etc)}
 
 \item{cachedir}{A path to a directory where a local cache of UCSC tables are stored. If equal to \code{NULL} (default), the data will be downloaded to temporary files and loaded on the fly. Caching is highly recommended to save time and bandwidth.}
+
+\item{sync}{If TRUE, then check if newer versions of UCSC tables are available and download them if so. If FALSE, skip this check. Can be used to freeze data versions in an analysis-specific cachedir for reproducibility.}
 }
 \description{
 Given a vector of table names from the UCSC genome browser that all contain "chrom", "chromStart", and "chromEnd" fields, converts them to input suitable for the goldmine() "features" argument (changes column names and adjusts 0-based start coordinates to 1-based).

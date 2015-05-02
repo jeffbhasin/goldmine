@@ -4,7 +4,7 @@
 \alias{addGenes}
 \title{Add columns with distance to nearest gene and gene symbol(s)}
 \usage{
-addGenes(query, geneset, genome, cachedir)
+addGenes(query, geneset, genome, cachedir, sync = TRUE)
 }
 \arguments{
 \item{query}{Genomic regions to find nearest genes for as a GRanges, data.frame, or data.table with the columns "chr", "start", and "end"}
@@ -14,6 +14,8 @@ addGenes(query, geneset, genome, cachedir)
 \item{genome}{UCSC genome name to use (e.g. hg19, mm10)}
 
 \item{cachedir}{Path where cached UCSC tables are stores}
+
+\item{sync}{If TRUE, then check if newer versions of UCSC tables are available and download them if so. If FALSE, skip this check. Can be used to freeze data versions in an analysis-specific cachedir for reproducibility.}
 }
 \description{
 Add columns with distance to nearest gene and gene symbol(s)

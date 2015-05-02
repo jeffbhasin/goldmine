@@ -4,7 +4,7 @@
 \alias{getGenes}
 \title{Load table of gene ranges via UCSC Genome Browser tables}
 \usage{
-getGenes(geneset = "ucsc", genome, cachedir = NULL)
+getGenes(geneset = "ucsc", genome, cachedir = NULL, sync = TRUE)
 }
 \arguments{
 \item{geneset}{Select one of "ucsc" for the UCSC Genes (from the knownGene table), "refseq" for RefSeq genes (from the refFlat table), or "ensembl" for the Ensembl genes (from the ensGene table)}
@@ -12,6 +12,8 @@ getGenes(geneset = "ucsc", genome, cachedir = NULL)
 \item{genome}{UCSC genome name to use (e.g. hg19, mm10)}
 
 \item{cachedir}{Path where cached UCSC tables are stores}
+
+\item{sync}{If TRUE, then check if newer versions of UCSC tables are available and download them if so. If FALSE, skip this check. Can be used to freeze data versions in an analysis-specific cachedir for reproducibility.}
 }
 \description{
 Load table of gene ranges via UCSC Genome Browser tables
