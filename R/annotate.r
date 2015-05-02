@@ -12,9 +12,10 @@
 #' @param features A list() of GenomicRanges, data.table, or data.frame objects giving feature sets of interest. If a data.frame or data.table, must contain the columns "chr", "start", "end", where the "start" coordinates are 1-based. All additional columns will be retained in the output object. See also the getFeatures() function.
 #' @param genome The UCSC name specific to the genome of the query coordinates (e.g. "hg19", "hg18", "mm10", etc)
 #' @param cachedir A path to a directory where a local cache of UCSC tables are stored. If equal to \code{NULL} (default), the data will be downloaded to temporary files and loaded on the fly. Caching is highly recommended to save time and bandwidth.
+#' @param sync If TRUE, then check if newer versions of UCSC tables are available and download them if so. If FALSE, skip this check. Can be used to freeze data versions in an analysis-specific cachedir for reproducibility.
 #' @return A list: "context" shows a percent overlap for each range in the query set with gene model regions and each feature set ("wide" format - same number of rows as the query and in the same order), "genes" contains a detailed view of each query region overlap with individual gene isoforms ("long" format - a row for each pair of query and isoform overlaps), "features" is a list of tables which for each table given in the "features" argument which contain a row for each instance of a query region overlapping with a feature region (also "long" format).
 #' @export
-goldmine <- function(query, genes=getGenes(geneset="ucsc", genome=genome, cachedir=cachedir), features=list(), genome, cachedir)
+goldmine <- function(query, genes=getGenes(geneset="ucsc", genome=genome, cachedir=cachedir), features=list(), genome, cachedir, sync=TRUE)
 {
 	# Validate and convert query input
 	query.gr <- makeGRanges(query)
@@ -26,7 +27,7 @@ goldmine <- function(query, genes=getGenes(geneset="ucsc", genome=genome, cached
 	#features.dt <- lapply(features,makeDT)
 
 	# Get chromosome lengths
-	chromInfo <- getUCSCTable("chromInfo", genome, cachedir)
+	chromInfo <- getUCSCTable("chromInfo", genome, cachedir, sync=sync)
 	chromInfo$chr <- chromInfo$chrom
 
 	# Set key ID fields for easy joins
@@ -283,15 +284,16 @@ gmWrite <- function(gm,path=".")
 #' @param genes Genes of interest from the output table of getGenes(). If not given, will default to the UCSC knownGene table.
 #' @param genome The UCSC name specific to the genome of the query coordinates (e.g. "hg19", "hg18", "mm10", etc)
 #' @param cachedir A path to a directory where a local cache of UCSC tables are stored. If equal to \code{NULL} (default), the data will be downloaded to temporary files and loaded on the fly. Caching is highly recommended to save time and bandwidth.
+#' @param sync If TRUE, then check if newer versions of UCSC tables are available and download them if so. If FALSE, skip this check. Can be used to freeze data versions in an analysis-specific cachedir for reproducibility.
 #' @return A list containing one GenomicRanges object for each of the gene model portions: Promoters, 3' Ends, Exons, Introns, Intergenic, 5' UTRs, 3' UTRs. The "srow" column can be used to match individual ranges to individual genes in the table given to the "genes" argument by row number.
 #' @export
-getGeneModels <- function(genes=getGenes(geneset="ucsc", genome=genome, cachedir=cachedir), genome, cachedir)
+getGeneModels <- function(genes=getGenes(geneset="ucsc", genome=genome, cachedir=cachedir), genome, cachedir, sync=TRUE)
 {
 	message("Computing gene models")
 
 	genes.gr <- makeGRanges(genes,strand=T)
 	genes.gr$srow <- 1:length(genes.gr)
-	chromInfo <- getUCSCTable("chromInfo", genome, cachedir)
+	chromInfo <- getUCSCTable("chromInfo", genome, cachedir, sync=sync)
 	chromInfo$chr <- chromInfo$chrom
 	seqlengths(genes.gr) <- chromInfo[match(seqlevels(genes.gr), chromInfo$chrom),]$size
 
@@ -370,15 +372,16 @@ getGeneModels <- function(genes=getGenes(geneset="ucsc", genome=genome, cachedir
 #' @param tables A vector of table names from UCSC (default: DnaseI and TFBS from encode for hg19).
 #' @param genome The UCSC name specific to the genome of the query coordinates (e.g. "hg19", "hg18", "mm10", etc)
 #' @param cachedir A path to a directory where a local cache of UCSC tables are stored. If equal to \code{NULL} (default), the data will be downloaded to temporary files and loaded on the fly. Caching is highly recommended to save time and bandwidth.
+#' @param sync If TRUE, then check if newer versions of UCSC tables are available and download them if so. If FALSE, skip this check. Can be used to freeze data versions in an analysis-specific cachedir for reproducibility.
 #' @export
-getFeatures <- function(tables=c("wgEncodeRegDnaseClusteredV3","wgEncodeRegTfbsClusteredV3"), genome, cachedir)
+getFeatures <- function(tables=c("wgEncodeRegDnaseClusteredV3","wgEncodeRegTfbsClusteredV3"), genome, cachedir, sync=TRUE)
 {
 	#if(genome!="hg19"){stop("This shortcut function is designed for genome hg19 only. Pleasure use getUCSCTable() to build feature sets for any other UCSC genome as desired.")}
 	#tables <- c("wgEncodeRegDnaseClusteredV2","wgEncodeRegTfbsClusteredV3","tfbsConsSites","gwasCatalog", "pubsBlat", "cosmic", "oreganno", "vistaEnhancers", "phastConsElements100way")
 
 	#c("wgEncodeRegDnaseClusteredV2","wgEncodeRegTfbsClusteredV3","tfbsConsSites","gwasCatalog", "pubsBlat", "cosmic", "oreganno", "vistaEnhancers", "phastConsElements100way")
 
-	tab.dt <- lapply(tables,getUCSCTable,genome=genome,cachedir=cachedir)
+	tab.dt <- lapply(tables,getUCSCTable,genome=genome,cachedir=cachedir, sync=sync)
 	names(tab.dt) <- tables
 
 	togr <- function(x)

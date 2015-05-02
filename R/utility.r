@@ -187,11 +187,11 @@ sortGRanges <- function(obj)
 #' @param geneset Select one of "ucsc" for the UCSC Genes (from the knownGene table), "refseq" for RefSeq genes (from the refFlat table), or "ensembl" for the Ensembl genes (from the ensGene table)
 #' @param genome UCSC genome name to use (e.g. hg19, mm10)
 #' @param cachedir Path where cached UCSC tables are stores
-#' @param sync If TRUE, then check if newer versions of UCSC tables are available and download them if so. If FALSE, skip this check.
+#' @param sync If TRUE, then check if newer versions of UCSC tables are available and download them if so. If FALSE, skip this check. Can be used to freeze data versions in an analysis-specific cachedir for reproducibility.
 #' @export
-addGenes <- function(query,geneset,genome,cachedir)
+addGenes <- function(query,geneset,genome,cachedir,sync=TRUE)
 {
-	genes <- getGenes(geneset,genome,cachedir)
+	genes <- getGenes(geneset,genome,cachedir,sync=sync)
 	addNearest(query,genes,id="name",prefix=geneset)
 }
 # --------------------------------------------------------------------
@@ -202,17 +202,18 @@ addGenes <- function(query,geneset,genome,cachedir)
 #' @param geneset Select one of "ucsc" for the UCSC Genes (from the knownGene table), "refseq" for RefSeq genes (from the refFlat table), or "ensembl" for the Ensembl genes (from the ensGene table)
 #' @param genome UCSC genome name to use (e.g. hg19, mm10)
 #' @param cachedir Path where cached UCSC tables are stores
+#' @param sync If TRUE, then check if newer versions of UCSC tables are available and download them if so. If FALSE, skip this check. Can be used to freeze data versions in an analysis-specific cachedir for reproducibility.
 #' @export
-getGenes <- function(geneset="ucsc",genome,cachedir=NULL)
+getGenes <- function(geneset="ucsc",genome,cachedir=NULL,sync=TRUE)
 {
 	# Validate geneset
 	if(!(geneset %in% c("ucsc","refseq","ensembl"))){stop("geneset must be one of \"ucsc\", \"refseq\", or \"ensembl\"")}
 
 	if(geneset=="ucsc")
 	{
-		kg <- getUCSCTable("knownGene",genome,cachedir)
-		kgx <- suppressWarnings(getUCSCTable("kgXref",genome,cachedir))
-		ki <- getUCSCTable("knownIsoforms",genome,cachedir)
+		kg <- getUCSCTable("knownGene",genome,cachedir,sync=sync)
+		kgx <- suppressWarnings(getUCSCTable("kgXref",genome,cachedir,sync=sync))
+		ki <- getUCSCTable("knownIsoforms",genome,cachedir,sync=sync)
 		setnames(kg,"name","kgID")
 		setnames(ki,"transcript","kgID")
 		setkey(kg,kgID)
@@ -225,13 +226,13 @@ getGenes <- function(geneset="ucsc",genome,cachedir=NULL)
 		return(genes)
 	} else if(geneset=="refseq")
 	{
-		rg <- getUCSCTable("refFlat",genome,cachedir)
+		rg <- getUCSCTable("refFlat",genome,cachedir,sync=sync)
 		genes <- rg[,list(chr=chrom,start=txStart+1,end=txEnd,strand=strand,name=geneName,gene.id=geneName,isoform.id=name,cdsStart=cdsStart,cdsEnd=cdsEnd,exonCount=exonCount,exonStarts=exonStarts,exonEnds=exonEnds)]
 		return(genes)
 	} else if(geneset=="ensembl")
 	{
-		eg <- getUCSCTable("ensGene",genome,cachedir)
-		en <- getUCSCTable("ensemblToGeneName",genome,cachedir)
+		eg <- getUCSCTable("ensGene",genome,cachedir,sync=sync)
+		en <- getUCSCTable("ensemblToGeneName",genome,cachedir,sync=sync)
 		setnames(eg,"name","isoform.id")
 		setnames(en,"name","isoform.id")
 		setkey(eg,"isoform.id")
