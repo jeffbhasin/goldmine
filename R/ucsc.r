@@ -61,7 +61,11 @@ getUCSCTable <- function(table, genome, cachedir=NULL, version="latest", sync=TR
 		# Set paths
 		cachedir.sql <- file.path(cachedir, genome, "database", paste(table, cachedir.version, ".sql", sep=""))
 		cachedir.txt <- file.path(cachedir, genome, "database", paste(table, cachedir.version, ".txt", sep=""))
-
+		if(!file.exists(cachedir.sql))
+		{
+			message("While sync==FALSE, table ", table, " has never been downloaded, downloading now...")
+			syncUCSCTable(table, genome, url, cachedir)
+		}
 	} else if(is.null(cachedir))
 	{
 		# If cachedir path not given and we need to download to tempfile() on the fly

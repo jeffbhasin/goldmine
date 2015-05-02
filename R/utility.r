@@ -187,6 +187,7 @@ sortGRanges <- function(obj)
 #' @param geneset Select one of "ucsc" for the UCSC Genes (from the knownGene table), "refseq" for RefSeq genes (from the refFlat table), or "ensembl" for the Ensembl genes (from the ensGene table)
 #' @param genome UCSC genome name to use (e.g. hg19, mm10)
 #' @param cachedir Path where cached UCSC tables are stores
+#' @param sync If TRUE, then check if newer versions of UCSC tables are available and download them if so. If FALSE, skip this check.
 #' @export
 addGenes <- function(query,geneset,genome,cachedir)
 {
