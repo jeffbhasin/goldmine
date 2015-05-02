@@ -307,10 +307,15 @@ getGeneModels <- function(genes=getGenes(geneset="ucsc", genome=genome, cachedir
 	genemodels$promoter <- prom.gr
 
 	# 3' Ends
-	ends.gr <- GRanges(seqnames(genes.gr), IRanges(end(genes.gr)-end3[1],end(genes.gr)+end3[2]-1),srow=genes.gr$srow)
+	# Need to flip strand so now "promoters" works from the end of the gene
+	tmp.gr <- genes.gr
+	strand(tmp.gr)[strand(genes.gr)=="+"] <- "-"
+	strand(tmp.gr)[strand(genes.gr)=="-"] <- "+"
+	ends.gr <- suppressWarnings(promoters(tmp.gr,upstream=end3[2],downstream=end3[1]))
 	dat <- values(ends.gr)$srow
 	values(ends.gr) <- NULL
 	ends.gr$srow <- dat
+	strand(ends.gr) <- strand(genes.gr)
 	genemodels$end3 <- ends.gr
 
 	# Exons
