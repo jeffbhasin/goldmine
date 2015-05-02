@@ -307,7 +307,7 @@ getGeneModels <- function(genes=getGenes(geneset="ucsc", genome=genome, cachedir
 	genemodels$promoter <- prom.gr
 
 	# 3' Ends
-	ends.gr <- GRanges(seqnames(genes.gr), IRanges(end(gene.gr)-end3[1],end(gene.gr)+end3[2]-1))
+	ends.gr <- GRanges(seqnames(genes.gr), IRanges(end(genes.gr)-end3[1],end(genes.gr)+end3[2]-1))
 	dat <- values(ends.gr)$srow
 	values(ends.gr) <- NULL
 	ends.gr$srow <- dat
