@@ -15,7 +15,7 @@
 #' @param sync If TRUE, then check if newer versions of UCSC tables are available and download them if so. If FALSE, skip this check. Can be used to freeze data versions in an analysis-specific cachedir for reproducibility.
 #' @return A list: "context" shows a percent overlap for each range in the query set with gene model regions and each feature set ("wide" format - same number of rows as the query and in the same order), "genes" contains a detailed view of each query region overlap with individual gene isoforms ("long" format - a row for each pair of query and isoform overlaps), "features" is a list of tables which for each table given in the "features" argument which contain a row for each instance of a query region overlapping with a feature region (also "long" format).
 #' @export
-goldmine <- function(query, genes=getGenes(geneset="ucsc", genome=genome, cachedir=cachedir), features=list(), genome, cachedir, sync=TRUE)
+goldmine <- function(query, genes=getGenes(geneset="ucsc", genome=genome, cachedir=cachedir), features=list(), promoter=c(1000,500), end3=c(1000,1000), genome, cachedir, sync=TRUE)
 {
 	# Validate and convert query input
 	query.gr <- makeGRanges(query)
@@ -37,7 +37,7 @@ goldmine <- function(query, genes=getGenes(geneset="ucsc", genome=genome, cached
 	query.gr$qrow <- 1:length(query.gr)
 
 	# Extract gene models
-	genemodels <- suppressWarnings(goldmine:::getGeneModels(genes=genes.gr, genome=genome, cachedir=cachedir))
+	genemodels <- suppressWarnings(goldmine:::getGeneModels(genes=genes.gr, promoter=promoter, end3=end3, genome=genome, cachedir=cachedir))
 
 	# Do the context annotation ("wide format" - returns same rows as original plus annotation columns)
 	message("Generating context annotation - genes")
@@ -287,7 +287,7 @@ gmWrite <- function(gm,path=".")
 #' @param sync If TRUE, then check if newer versions of UCSC tables are available and download them if so. If FALSE, skip this check. Can be used to freeze data versions in an analysis-specific cachedir for reproducibility.
 #' @return A list containing one GenomicRanges object for each of the gene model portions: Promoters, 3' Ends, Exons, Introns, Intergenic, 5' UTRs, 3' UTRs. The "srow" column can be used to match individual ranges to individual genes in the table given to the "genes" argument by row number.
 #' @export
-getGeneModels <- function(genes=getGenes(geneset="ucsc", genome=genome, cachedir=cachedir), genome, cachedir, sync=TRUE)
+getGeneModels <- function(genes=getGenes(geneset="ucsc", genome=genome, cachedir=cachedir), promoter=c(1000,500), end3=c(1000,1000), genome, cachedir, sync=TRUE)
 {
 	message("Computing gene models")
 
@@ -300,14 +300,14 @@ getGeneModels <- function(genes=getGenes(geneset="ucsc", genome=genome, cachedir
 	genemodels <- list()
 
 	# Promoters
-	prom.gr <- suppressWarnings(promoters(genes.gr,upstream=1000,downstream=500))
+	prom.gr <- suppressWarnings(promoters(genes.gr,upstream=promoter[1],downstream=promoter[2]))
 	dat <- values(prom.gr)$srow
 	values(prom.gr) <- NULL
 	prom.gr$srow <- dat
 	genemodels$promoter <- prom.gr
 
 	# 3' Ends
-	ends.gr <- suppressWarnings(flank(genes.gr,1000,start=FALSE,both=TRUE))
+	ends.gr <- GRanges(seqnames(genes.gr), IRanges(end(gene.gr)-end3[1],end(gene.gr)+end3[2]-1))
 	dat <- values(ends.gr)$srow
 	values(ends.gr) <- NULL
 	ends.gr$srow <- dat
