@@ -16,7 +16,7 @@ testEnrichment <- function(query, null, features)
 {
 	# Convert to GRanges
 	query.gr <- makeGRanges(query)
-	background.gr <- makeGRanges(background)
+	background.gr <- makeGRanges(null)
 	features.gr <- makeGRanges(features)
 
 	if(!("name" %in% colnames(values(features.gr))))
