@@ -199,7 +199,7 @@ doPropMatch <- function(query, pool, outdir=".", formula, n=1, bsg, genome, cach
 	seq2.filt <- seq2.unfiltered[(seq2.unfiltered.size<=max(seq1$meta$size))&(seq2.unfiltered.size>=min(seq1$meta$size))]
 
 	message("Meta for seq2")
-	seq2 <- getSeqMeta(seq2.filt, bsg, genome, cachedir)
+	seq2 <- goldmine:::getSeqMeta(seq2.filt, bsg, genome, cachedir)
 	bad <- is.na(seq2$meta$gc)
 	seq2$meta <- seq2$meta[!bad,]
 	seq2$seq <- seq2$seq[!bad]
@@ -213,7 +213,7 @@ doPropMatch <- function(query, pool, outdir=".", formula, n=1, bsg, genome, cach
 	nTotalSeqs <- nrow(seq1$meta) + nrow(seq2$meta)
 	index.random <- sample(seq(1:nTotalSeqs),nTotalSeqs, replace=FALSE)
 	#formula <- as.formula("treat ~ sizeLog + gc + freqCpG + repeatPer + distTSSCenterLogX1")
-	seq.ref <- drawBackgroundSetPropensity(seq1$seq,seq1$meta,seq2$seq,seq2$meta,formula,start.order=index.random,n=n)
+	seq.ref <- goldmine:::drawBackgroundSetPropensity(seq1$seq,seq1$meta,seq2$seq,seq2$meta,formula,start.order=index.random,n=n)
 	pro.gr <- makeGRanges(seq.ref)
 
 	message("Saving Sequence Sets as FASTA in: ",outdir)
@@ -228,12 +228,17 @@ doPropMatch <- function(query, pool, outdir=".", formula, n=1, bsg, genome, cach
 	# Do plotting
 	pdfpath <- paste0(outdir,"/psm.pdf")
 	message("Saving Matching Performance PDF: ",pdfpath)
-	pdf(file=pdfpath, width=10.5, height=8, paper="USr")
-	plotCovarHistogramsOverlap(seq1$meta,seq2$meta,cols,main="Target vs Pool")
-	plotCovarHistogramsOverlap(seq1$meta,seq.ref,cols,main="Target vs Matched Reference")
+	
+	g1 <- goldmine:::plotCovarHistogramsOverlap(seq1$meta,seq2$meta,cols,main="Target vs Pool")
+	g2 <- goldmine:::plotCovarHistogramsOverlap(seq1$meta,seq.ref,cols,main="Target vs Matched Reference")
+	g3 <- goldmine:::plotCovarQQ(seq1$meta, mymeta, cols, plot.ncols=4)
+
+	pdf(file=pdfpath, width=10.5, height=8)
+	gridExtra::grid.arrange(g1[[1]], g1[[2]], heights=grid::unit(c(7.5,0.5),"in"),nrow=2,ncol=1)
+	gridExtra::grid.arrange(g2[[1]], g2[[2]], heights=grid::unit(c(7.5,0.5),"in"),nrow=2,ncol=1)
 	mymeta <- list(pool=seq2$meta,match=seq.ref)
-	plotCovarQQ(seq1$meta, mymeta, cols, plot.ncols=4)
-	print(plotCovarDistance(seq1$meta, mymeta, cols))
+	gridExtra::grid.arrange(g3, main="QQ Plots")
+	print(goldmine:::plotCovarDistance(seq1$meta, mymeta, cols))
 	dev.off()
 
 	list(query.seq=seq1, null.seq=seq2, ranges.null=pro.gr)
@@ -559,7 +564,7 @@ plotCovarHistogramsOverlap <- function(seq1.meta,seq2.meta,cols,plot.ncols=3, ma
 	p <- c(p,list(ncol=plot.ncols, main=main))
 
 	g <- do.call(gridExtra::arrangeGrob,p)
-	gridExtra::grid.arrange(g, legend, heights=grid::unit(c(7.5,0.5),"in"),nrow=2,ncol=1)
+	return(list(g,legend))
 }
 # --------------------------------------------------------------------
 
@@ -603,7 +608,7 @@ plotCovarQQ <- function(orig.meta,list.meta,cols,plot.ncols=3)
 
 	g <- do.call(gridExtra::arrangeGrob,p)
 	#grid.arrange(g, legend, widths=unit(c(7.5,0.5),"in"), main="QQ Plots",nrow=1,ncol=2)
-	gridExtra::grid.arrange(g, main="QQ Plots")
+	return(g)
 }
 # --------------------------------------------------------------------
 
