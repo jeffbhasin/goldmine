@@ -92,7 +92,7 @@ getUCSCTable <- function(table, genome, cachedir=NULL, version="latest", sync=TR
 	# We can now open the data from the TXT
 	if(fread==TRUE)
 	{
-		txt <- fread(cachedir.txt,sep="\t")
+		txt <- suppressWarnings(fread(cachedir.txt,sep="\t"))
 	} else
 	{
 		txt <- read.table(file=cachedir.txt, comment.char="", header=FALSE, stringsAsFactors=FALSE, sep="\t", quote="")
@@ -593,7 +593,7 @@ getDistTSSCenter <- function(regions.ranges, genome, cachedir)
 	#ann.starts <- with(ann,data.frame(chrom,txStart.1based,txEnd,strand))
 	ann.starts <- getUCSCTable("knownGene",genome,cachedir)
 	ann.starts[strand=="+",tss:=txStart+1]
-	ann.starts[strand=="-",tss:=txEnd]
+	suppressWarnings(ann.starts[strand=="-",tss:=txEnd])
 
 	ann.ranges <- with(ann.starts, GRanges(seqnames=chrom,ranges=IRanges(start=tss,end=tss)))
 
@@ -643,7 +643,7 @@ getDistTSECenter <- function(regions.ranges,genome,cachedir)
 	# need to use txEnd for genes on the "-" strand
 	ann.starts <- getUCSCTable("knownGene",genome,cachedir)
 	ann.starts[strand=="-",tse:=txStart+1]
-	ann.starts[strand=="+",tse:=txEnd]
+	suppressWarnings(ann.starts[strand=="+",tse:=txEnd])
 	ann.ranges <- with(ann.starts, GRanges(seqnames=chrom,ranges=IRanges(start=tse,end=tse)))
 
 	#overlap <- countOverlaps(regions.ranges,ann.ranges)
