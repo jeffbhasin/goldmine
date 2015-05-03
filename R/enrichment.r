@@ -176,7 +176,7 @@ drawGenomePool <- function(query, n, genome, cachedir, chrs=NULL)
 doPropMatch <- function(query, pool, outdir=".", formula, n=1, bsg, genome, cachedir)
 {
 	dir.create(outdir,showWarnings=FALSE,recursive=TRUE)
-	target.gr <- makeGRanges(target)
+	target.gr <- makeGRanges(query)
 	pool.gr <- makeGRanges(pool)
 	formula <- as.formula(formula)
 
