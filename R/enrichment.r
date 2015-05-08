@@ -233,12 +233,12 @@ doPropMatch <- function(query, pool, outdir=".", formula, n=1, bsg, genome, cach
 	
 	g1 <- goldmine:::plotCovarHistogramsOverlap(seq1$meta,seq2$meta,cols,main="Target vs Pool")
 	g2 <- goldmine:::plotCovarHistogramsOverlap(seq1$meta,seq.ref,cols,main="Target vs Matched Reference")
+	mymeta <- list(pool=seq2$meta,match=seq.ref)
 	g3 <- goldmine:::plotCovarQQ(seq1$meta, mymeta, cols, plot.ncols=4)
 
 	pdf(file=pdfpath, width=10.5, height=8)
 	gridExtra::grid.arrange(g1[[1]], g1[[2]], heights=grid::unit(c(7.5,0.5),"in"),nrow=2,ncol=1)
 	gridExtra::grid.arrange(g2[[1]], g2[[2]], heights=grid::unit(c(7.5,0.5),"in"),nrow=2,ncol=1)
-	mymeta <- list(pool=seq2$meta,match=seq.ref)
 	gridExtra::grid.arrange(g3, main="QQ Plots")
 	print(goldmine:::plotCovarDistance(seq1$meta, mymeta, cols))
 	dev.off()
