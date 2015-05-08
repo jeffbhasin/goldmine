@@ -550,7 +550,7 @@ plotCovarHistogramsOverlap <- function(seq1.meta,seq2.meta,cols,plot.ncols=3, ma
 	{
 		plot.data <- data.frame(bin=h1$mids,freq=h1$count/sum(h1$count),seq=name1)
 		plot.data <- rbind(plot.data,data.frame(bin=h2$mids,freq=h2$count/sum(h2$count),seq=name2))
-		ggplot(plot.data, aes(x=bin,y=freq,fill=seq)) + geom_bar(data=subset(plot.data,seq == name1), stat="identity",alpha=0.5) + geom_bar(data=subset(plot.data,seq == name2), stat="identity",alpha=0.5) + scale_fill_manual("", values = c("#007FFF","#FF007F")) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), legend.key.size = grid::unit(0.8, "lines"), axis.line = element_line(colour = "grey50"))
+		ggplot(plot.data, aes(x=bin,y=freq,fill=seq)) + geom_bar(data=subset(plot.data,seq == name1), stat="identity",alpha=0.5) + geom_bar(data=subset(plot.data,seq == name2), stat="identity",alpha=0.5) + scale_fill_manual("", values = c("#007FFF","#FF007F")) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), legend.key.size = grid::unit(0.8, "lines"), axis.line = element_line(colour = "black"))
 	}
 
 	p1 <- ggplot.hist.overlap(hists1[[1]], hists2[[1]]) + theme(legend.position="bottom")
