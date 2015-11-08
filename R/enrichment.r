@@ -239,7 +239,7 @@ doPropMatch <- function(query, pool, outdir=".", formula, n=1, bsg, genome, cach
 	pdf(file=pdfpath, width=10.5, height=8)
 	gridExtra::grid.arrange(g1[[1]], g1[[2]], heights=grid::unit(c(7.5,0.5),"in"),nrow=2,ncol=1)
 	gridExtra::grid.arrange(g2[[1]], g2[[2]], heights=grid::unit(c(7.5,0.5),"in"),nrow=2,ncol=1)
-	gridExtra::grid.arrange(g3, main="QQ Plots")
+	gridExtra::grid.arrange(g3, top="QQ Plots")
 	print(goldmine:::plotCovarDistance(seq1$meta, mymeta, cols))
 	dev.off()
 
@@ -563,7 +563,7 @@ plotCovarHistogramsOverlap <- function(seq1.meta,seq2.meta,cols,plot.ncols=3, ma
 	{
   		p[[i]] <- ggplot.hist.overlap(hists1[[i]], hists2[[i]]) + labs(title=names(seq1.meta)[cols[i]]) + theme(legend.position = "none")
 	}
-	p <- c(p,list(ncol=plot.ncols, main=main))
+	p <- c(p,list(ncol=plot.ncols, top=main))
 
 	g <- do.call(gridExtra::arrangeGrob,p)
 	return(list(g,legend))
@@ -584,7 +584,7 @@ plotCovarQQ <- function(orig.meta,list.meta,cols,plot.ncols=3)
 {
 	ggplot.qq <- function(d,i)
 	{
-		ggplot(d) + geom_point(aes(x=x, y=y,color=Sequences), size=2, stat = "identity", position = "identity", ) + ggplot.clean() + labs(x="Target", y="Background") + geom_abline(slope = 1, intercept=0) + labs(title=names(orig.meta)[cols[i]]) + scale_colour_manual(values = genColors(length(list.meta)))
+		ggplot(d) + geom_point(aes(x=x, y=y,color=Sequences), size=2, stat = "identity", position = "identity", ) + goldmine:::ggplot.clean() + labs(x="Target", y="Background") + geom_abline(slope = 1, intercept=0) + labs(title=names(orig.meta)[cols[i]]) + scale_colour_manual(values = goldmine:::genColors(length(list.meta)))
 	}
 
 	getplotdata <- function(i)

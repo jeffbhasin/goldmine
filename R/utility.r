@@ -63,17 +63,17 @@ makeGRanges <- function(obj, strand=F)
 #' @export
 writeBEDFromGRanges <- function(gr, file, name=NULL)
 {
-	if(file.exists(file)){file.remove(file)}
-	fileConn<-file(file)
-	writeLines(c(paste("track name=\"",file,"\"",sep="")), fileConn)
-	close(fileConn)
+	#if(file.exists(file)){file.remove(file)}
+	#fileConn<-file(file)
+	#writeLines(c(paste("track name=\"",file,"\"",sep="")), fileConn)
+	#close(fileConn)
 	df <- data.frame(chr=as.character(seqnames(gr)),start=start(gr)-1, end=end(gr))
 	if(!is.null(name))
 	{
 		df$name <- values(gr)[,name]
 	}
 	#df <- df[df$chr %in% c(sapply(seq(1,22),function(x) paste("chr",x,sep="")),"chrX","chrY"),]
-	write.table(df, file=file, row.names=FALSE, col.names=FALSE, sep="\t", quote=FALSE, append=TRUE)
+	write.table(df, file=file, row.names=FALSE, col.names=FALSE, sep="\t", quote=FALSE, append=FALSE)
 }
 # -----------------------------------------------------------------------------
 
