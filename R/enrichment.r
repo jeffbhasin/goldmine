@@ -88,7 +88,7 @@ testEnrichment <- function(query, null, features)
 #' @param cachedir A path to a directory where a local cache of UCSC tables are stored. If equal to \code{NULL} (default), the data will be downloaded to temporary files and loaded on the fly. Caching is highly recommended to save time and bandwidth.
 #' @return A GRanges of the background sequences.
 #' @export
-drawGenomePool <- function(query, n, chrs=NULL, genome, cachedir)
+drawGenomePool <- function(query, n, chrs=NULL, genome, cachedir, sync=TRUE)
 {
 	target.gr <- makeGRanges(query)
 	if(is.null(chrs))
@@ -103,11 +103,11 @@ drawGenomePool <- function(query, n, chrs=NULL, genome, cachedir)
 	lens <- rep(lens,n)
 
 	# Get chromosome lengths
-	chromsizes <- getUCSCTable("chromInfo", genome, cachedir)
+	chromsizes <- getUCSCTable("chromInfo", genome, cachedir, sync=sync)
 	chromsizes <- chromsizes[chromsizes$chrom %in% chrs,]
 
 	# Get gaps GR
-	gaps <- getUCSCTable("gap", genome, cachedir)
+	gaps <- getUCSCTable("gap", genome, cachedir, sync=sync)
 	gaps.gr <- with(gaps, GRanges(seqnames=chrom, ranges=IRanges(start=chromStart+1, end=chromEnd)))
 
 	# For each size, draw n random non-gap positions
