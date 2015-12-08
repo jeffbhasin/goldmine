@@ -17,7 +17,7 @@
 #' @param sync If TRUE, then check if newer versions of UCSC tables are available and download them if so. If FALSE, skip this check. Can be used to freeze data versions in an analysis-specific cachedir for reproducibility.
 #' @return A list: "context" shows a percent overlap for each range in the query set with gene model regions and each feature set ("wide" format - same number of rows as the query and in the same order), "genes" contains a detailed view of each query region overlap with individual gene isoforms ("long" format - a row for each pair of query and isoform overlaps), "features" is a list of tables which for each table given in the "features" argument which contain a row for each instance of a query region overlapping with a feature region (also "long" format).
 #' @export
-goldmine <- function(query, genes=getGenes(geneset="ucsc", genome=genome, cachedir=cachedir), features=list(), promoter=c(1000,500), end3=c(1000,1000), genome, cachedir, sync=TRUE)
+goldmine <- function(query, genes=getGenes(geneset="ucsc", genome=genome, cachedir=cachedir), features=list(), promoter=c(1000,500), end3=c(1000,1000), contextonly=FALSE, genome, cachedir, sync=TRUE)
 {
 	# Validate and convert query input
 	query.gr <- makeGRanges(query)
@@ -99,7 +99,6 @@ goldmine <- function(query, genes=getGenes(geneset="ucsc", genome=genome, cached
 	ann$nearest_genes <- g
 	ann$distance_to_nearest_gene <- d
 
-	
 	if(length(features)>0)
 	{
 		message("Generating context annotation - features")
@@ -111,142 +110,148 @@ goldmine <- function(query, genes=getGenes(geneset="ucsc", genome=genome, cached
 	# Add URL
 	ann$url <- goldmine:::getBrowserURLs(query.gr,genome)
 
-	# Do the gene overlaps if asked for
-	message("Generating genes report")
-	reportGenes2 <- function(query.gr, genes.gr)
+	if(contextonly==FALSE)
 	{
-		chrs <- as.character(seqnames(query.gr))
-		starts <- start(query.gr)
-		ends <- end(query.gr)
+			# Do the gene overlaps if asked for
+			message("Generating genes report")
+			reportGenes2 <- function(query.gr, genes.gr)
+			{
+				chrs <- as.character(seqnames(query.gr))
+				starts <- start(query.gr)
+				ends <- end(query.gr)
 
-		# Initial Intersect
-		fo <- findOverlaps(query.gr, genes.gr)
-		foq <- queryHits(fo)
-		fos <- subjectHits(fo)
+				# Initial Intersect
+				fo <- findOverlaps(query.gr, genes.gr)
+				foq <- queryHits(fo)
+				fos <- subjectHits(fo)
 
-		# Make initial joined columns
-		qrow=query.gr[foq]$qrow
-		srow=genes.gr[fos]$srow
-		query.chr=chrs[foq]
-		query.start=starts[foq]
-		query.end=ends[foq]
-		gene.symbol=genes.gr[fos]$name
-		gene.id=genes.gr[fos]$gene.id
-		isoform.id=genes.gr[fos]$isoform.id
-		isoform.chr=as.character(seqnames(genes.gr[fos]))
-		isoform.start=start(genes.gr[fos])
-		isoform.end=end(genes.gr[fos])
-		isoform.strand=as.character(strand(genes.gr[fos]))
-		overlap.bp=suppressWarnings(goldmine:::calcPercentOverlap(query.gr, genes.gr, sum.all=FALSE, report.bp=TRUE))
-		query.overlap.per=suppressWarnings(goldmine:::calcPercentOverlap(query.gr, genes.gr, sum.all=FALSE))
-		isoform.overlap.per=suppressWarnings(goldmine:::calcPercentOverlap(genes.gr, query.gr, sum.all=FALSE))
+				# Make initial joined columns
+				qrow=query.gr[foq]$qrow
+				srow=genes.gr[fos]$srow
+				query.chr=chrs[foq]
+				query.start=starts[foq]
+				query.end=ends[foq]
+				gene.symbol=genes.gr[fos]$name
+				gene.id=genes.gr[fos]$gene.id
+				isoform.id=genes.gr[fos]$isoform.id
+				isoform.chr=as.character(seqnames(genes.gr[fos]))
+				isoform.start=start(genes.gr[fos])
+				isoform.end=end(genes.gr[fos])
+				isoform.strand=as.character(strand(genes.gr[fos]))
+				overlap.bp=suppressWarnings(goldmine:::calcPercentOverlap(query.gr, genes.gr, sum.all=FALSE, report.bp=TRUE))
+				query.overlap.per=suppressWarnings(goldmine:::calcPercentOverlap(query.gr, genes.gr, sum.all=FALSE))
+				isoform.overlap.per=suppressWarnings(goldmine:::calcPercentOverlap(genes.gr, query.gr, sum.all=FALSE))
 
-		anng <- data.table(qrow=qrow, srow=srow, query.chr=query.chr, query.start=query.start, query.end=query.end, gene.symbol=gene.symbol, gene.id=gene.id, isoform.id=isoform.id, isoform.chr=isoform.chr, isoform.start=isoform.start, isoform.end=isoform.end, isoform.strand=isoform.strand, overlap.bp=overlap.bp, query.overlap.per=query.overlap.per, isoform.overlap.per=isoform.overlap.per)
+				anng <- data.table(qrow=qrow, srow=srow, query.chr=query.chr, query.start=query.start, query.end=query.end, gene.symbol=gene.symbol, gene.id=gene.id, isoform.id=isoform.id, isoform.chr=isoform.chr, isoform.start=isoform.start, isoform.end=isoform.end, isoform.strand=isoform.strand, overlap.bp=overlap.bp, query.overlap.per=query.overlap.per, isoform.overlap.per=isoform.overlap.per)
 
-		# add noncoding flag
-		anng$noncoding <- genes.gr[fos]$cdsStart==genes.gr[fos]$cdsEnd
+				# add noncoding flag
+				anng$noncoding <- genes.gr[fos]$cdsStart==genes.gr[fos]$cdsEnd
 
-		# Make isoform-specific percent overlap columns
-		# Promoter
-		prom.o <- goldmine:::calcOverlapForReport(query.gr,genemodels$promoter, all=FALSE)
-		colnames(prom.o) <- c("qrow", "srow", "Promoter")
-		setkeyv(anng,c("qrow","srow"))
-		prom.o <- data.table(prom.o)
-		setkeyv(prom.o,c("qrow","srow"))
-		anng <- merge(anng,prom.o,all.x=T,all.y=F)
-		anng[is.na(anng$"Promoter"),Promoter:=0]
+				# Make isoform-specific percent overlap columns
+				# Promoter
+				prom.o <- goldmine:::calcOverlapForReport(query.gr,genemodels$promoter, all=FALSE)
+				colnames(prom.o) <- c("qrow", "srow", "Promoter")
+				setkeyv(anng,c("qrow","srow"))
+				prom.o <- data.table(prom.o)
+				setkeyv(prom.o,c("qrow","srow"))
+				anng <- merge(anng,prom.o,all.x=T,all.y=F)
+				anng[is.na(anng$"Promoter"),Promoter:=0]
 
-		# Exon and Intron Diagram
-		exon.o <- goldmine:::calcOverlapForReportExons(query.gr, genemodels$exon)
-		intron.o <- goldmine:::calcOverlapForReportExons(query.gr, genemodels$intron)
-		exon.o$type <- "E"
-		intron.o$type <- "I"
-		all.o <- rbind(exon.o, intron.o)
+				# Exon and Intron Diagram
+				exon.o <- goldmine:::calcOverlapForReportExons(query.gr, genemodels$exon)
+				intron.o <- goldmine:::calcOverlapForReportExons(query.gr, genemodels$intron)
+				exon.o$type <- "E"
+				intron.o$type <- "I"
+				all.o <- rbind(exon.o, intron.o)
 
-		message("Generating exon/intron overlap diagrams")
-		kgxs <- rbind(data.table(srow=genemodels$exon$srow, num=genemodels$exon$num, type="E"), data.table(srow=genemodels$intron$srow, num=genemodels$intron$num, type="I"))
-		pairs.dt <- data.table(qrow=anng$qrow, srow=anng$srow)
-		setkey(pairs.dt, qrow, srow)
-		kgxs.dt <- data.table(kgxs)
-		setkey(kgxs.dt, srow)
-		kgx.dt <- merge(pairs.dt, kgxs.dt, by="srow", allow.cartesian=TRUE)
+				message("Generating exon/intron overlap diagrams")
+				kgxs <- rbind(data.table(srow=genemodels$exon$srow, num=genemodels$exon$num, type="E"), data.table(srow=genemodels$intron$srow, num=genemodels$intron$num, type="I"))
+				pairs.dt <- data.table(qrow=anng$qrow, srow=anng$srow)
+				setkey(pairs.dt, qrow, srow)
+				kgxs.dt <- data.table(kgxs)
+				setkey(kgxs.dt, srow)
+				kgx.dt <- merge(pairs.dt, kgxs.dt, by="srow", allow.cartesian=TRUE)
 
-		# Join our percents in
-		all.o.dt <- data.table(all.o)
-		setkey(all.o.dt, qrow, srow, num, type)
-		ts.dt <- merge(kgx.dt, all.o.dt, by=c("qrow","srow","num","type"), all.x=TRUE, all.y=FALSE)
+				# Join our percents in
+				all.o.dt <- data.table(all.o)
+				setkey(all.o.dt, qrow, srow, num, type)
+				ts.dt <- merge(kgx.dt, all.o.dt, by=c("qrow","srow","num","type"), all.x=TRUE, all.y=FALSE)
 
-		# Assign the rest as 0%
-		if(sum(is.na(ts.dt$per))>0)
-		{
-			ts.dt[is.na(ts.dt$per),per:=0]
-		}
-		ts.dt[,strand:=as.character(strand(genes.gr))[srow]]
+				# Assign the rest as 0%
+				if(sum(is.na(ts.dt$per))>0)
+				{
+					ts.dt[is.na(ts.dt$per),per:=0]
+				}
+				ts.dt[,strand:=as.character(strand(genes.gr))[srow]]
 
-		# Reverse numbers if strand="-"
-		ts1 <- ts.dt[strand=="-",list(num=rev(num),type=type,per=per,strand=strand),by=c("qrow","srow")]
-		ts2 <- ts.dt[strand=="+",]
-		ts.dt <- rbind(ts1,ts2)
+				# Reverse numbers if strand="-"
+				ts1 <- ts.dt[strand=="-",list(num=rev(num),type=type,per=per,strand=strand),by=c("qrow","srow")]
+				ts2 <- ts.dt[strand=="+",]
+				ts.dt <- rbind(ts1,ts2)
 
-		ts.dt <- ts.dt[,list(qrow=qrow, srow=srow, strand=strand, string=paste0(type,num," (",per,")"))]
+				ts.dt <- ts.dt[,list(qrow=qrow, srow=srow, strand=strand, string=paste0(type,num," (",per,")"))]
 
-		# Reverse the toString if the strand is "-"
+				# Reverse the toString if the strand is "-"
 
-		#ts.dt <- ts.dt[,list("ExonIntron"=toString(string)),by=c("qrow","srow")]
-		st.dt1 <- ts.dt[strand=="+",list(ExonIntron=toString(string)),by=c("qrow","srow")]
-		st.dt2 <- ts.dt[strand=="-",list(ExonIntron=toString(rev(string))),by=c("qrow","srow")]
-		st.dt <- rbind(st.dt1,st.dt2)
+				#ts.dt <- ts.dt[,list("ExonIntron"=toString(string)),by=c("qrow","srow")]
+				st.dt1 <- ts.dt[strand=="+",list(ExonIntron=toString(string)),by=c("qrow","srow")]
+				st.dt2 <- ts.dt[strand=="-",list(ExonIntron=toString(rev(string))),by=c("qrow","srow")]
+				st.dt <- rbind(st.dt1,st.dt2)
 
-		anng <- merge(anng,st.dt,by=c("qrow","srow"),all.x=T)
+				anng <- merge(anng,st.dt,by=c("qrow","srow"),all.x=T)
 
-		# 3' Ends
-		end.o <- goldmine:::calcOverlapForReport(query.gr,genemodels$end3, all=FALSE)
-		colnames(end.o) <- c("qrow", "srow", "3' End")
-		setkeyv(anng,c("qrow","srow"))
-		end.o <- data.table(end.o)
-		setkeyv(end.o,c("qrow","srow"))
-		anng <- merge(anng,end.o,all.x=T,all.y=F)
-		anng[is.na(anng$"3' End"),"3' End":=0]
+				# 3' Ends
+				end.o <- goldmine:::calcOverlapForReport(query.gr,genemodels$end3, all=FALSE)
+				colnames(end.o) <- c("qrow", "srow", "3' End")
+				setkeyv(anng,c("qrow","srow"))
+				end.o <- data.table(end.o)
+				setkeyv(end.o,c("qrow","srow"))
+				anng <- merge(anng,end.o,all.x=T,all.y=F)
+				anng[is.na(anng$"3' End"),"3' End":=0]
 
-		# add browser links if this was requested
-		anng$url <- goldmine:::getBrowserURLs(GRanges(seqnames=anng$query.chr, ranges=IRanges(start=anng$query.start,end=anng$query.end)), genome)
+				# add browser links if this was requested
+				anng$url <- goldmine:::getBrowserURLs(GRanges(seqnames=anng$query.chr, ranges=IRanges(start=anng$query.start,end=anng$query.end)), genome)
 
-		return(anng)
+				return(anng)
 
-	}
-	rg <- reportGenes2(query.gr, genes.gr)
+			}
+			rg <- reportGenes2(query.gr, genes.gr)
 
-	# Do the feature overlaps if asked for, separate for each feature on the list
-	if(length(features)>0)
-	{
-	message("Generating features report")
-	reportFeatures2 <- function(query.gr, x.gr)
-	{
-		features.chr <- as.character(seqnames(x.gr))
-		features.start <- start(x.gr)
-		features.end <- end(x.gr)
-		chrs <- as.character(seqnames(query.gr))
-		starts <- start(query.gr)
-		ends <- end(query.gr)
-		query.gr$qrow <- 1:length(query.gr)
-		x.gr$srow <- 1:length(x.gr)
-		overs <- goldmine:::calcOverlapForReport(query.gr, x.gr)
+			# Do the feature overlaps if asked for, separate for each feature on the list
+			if(length(features)>0)
+			{
+			message("Generating features report")
+			reportFeatures2 <- function(query.gr, x.gr)
+			{
+				features.chr <- as.character(seqnames(x.gr))
+				features.start <- start(x.gr)
+				features.end <- end(x.gr)
+				chrs <- as.character(seqnames(query.gr))
+				starts <- start(query.gr)
+				ends <- end(query.gr)
+				query.gr$qrow <- 1:length(query.gr)
+				x.gr$srow <- 1:length(x.gr)
+				overs <- goldmine:::calcOverlapForReport(query.gr, x.gr)
 
-		annf <- data.table(query.chr=chrs[overs$qrow], query.start=starts[overs$qrow], query.end=ends[overs$qrow], feature.chr=features.chr[overs$srow], feature.start=features.start[overs$srow], feature.end=features.end[overs$srow], overlap.query.per=overs$per, overlap.feature.per=overs$sper, overlap.bp=overs$bp)
-		annq <- as.data.frame(values(query.gr)[overs$qrow,])
-		colnames(annq) <- paste("query",colnames(annq),sep="_")
-		anns <- as.data.frame(values(x.gr)[overs$srow,])
-		colnames(anns) <- paste("feature",colnames(anns),sep="_")
+				annf <- data.table(query.chr=chrs[overs$qrow], query.start=starts[overs$qrow], query.end=ends[overs$qrow], feature.chr=features.chr[overs$srow], feature.start=features.start[overs$srow], feature.end=features.end[overs$srow], overlap.query.per=overs$per, overlap.feature.per=overs$sper, overlap.bp=overs$bp)
+				annq <- as.data.frame(values(query.gr)[overs$qrow,])
+				colnames(annq) <- paste("query",colnames(annq),sep="_")
+				anns <- as.data.frame(values(x.gr)[overs$srow,])
+				colnames(anns) <- paste("feature",colnames(anns),sep="_")
 
-		annf2 <- cbind(annf, annq, anns)
-		return(annf2)
-	}
-	rf <- lapply(features.gr,function(x) reportFeatures2(query.gr, x))
+				annf2 <- cbind(annf, annq, anns)
+				return(annf2)
+			}
+			rf <- lapply(features.gr,function(x) reportFeatures2(query.gr, x))
+			} else
+			{
+				rf <- list()
+			}
+			return(list(context=ann, genes=rg, features=rf))
 	} else
 	{
-		rf <- list()
+		return(ann)
 	}
-	return(list(context=ann, genes=rg, features=rf))
 }
 # --------------------------------------------------------------------
 
