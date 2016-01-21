@@ -5,25 +5,26 @@ Version: 1.0
 License: MIT
 Title: goldmine: Genomic context annotation for any set of genomic
     ranges using UCSC Genome Browser tables
-Description: Goldmine obtains data by direct downloading and updating of a
-    local mirror of select UCSC Genome Browser annotation tables. The R package
-    contains functions to assess genomic context of any given set of genomic
-    ranges by performing overlaps with regions of annotated genomic features
-    and produce long, short, and plot outputs. There are also functions for performing enrichment testing by drawing background sets matched for multiple variables (i.e., length, CpG density, etc).
-Depends: 
+Description: Goldmine obtains data by direct downloading and updating of a local
+    mirror of select UCSC Genome Browser annotation tables. The R package contains
+    functions to assess genomic context of any given set of genomic ranges by
+    performing overlaps with regions of annotated genomic features and produce long,
+    short, and plot outputs. There are also functions for performing enrichment
+    testing by drawing background sets matched for multiple variables (i.e., length,
+    CpG density, etc).
+Depends:
     GenomicRanges,
     data.table,
     stringr,
     ggplot2,
     IRanges
-Imports: 
+Imports:
     httr,
     RCurl,
     R.utils,
     gtools,
-    Matching,
-    rms,
     grid,
     gridExtra,
     RColorBrewer,
     reshape
+RoxygenNote: 5.0.1
