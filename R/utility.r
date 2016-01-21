@@ -78,9 +78,10 @@ writeBEDFromGRanges <- function(gr, file, name=NULL)
 # -----------------------------------------------------------------------------
 
 # -----------------------------------------------------------------------------
-# Clean ggplot2 theme
-#
-# Remove gridlines from ggplot2.
+#' Nice ggplot2 theme
+#'
+#' Add a clean theme layer over ggplot2 calls.
+#' @export
 ggnice <- function()
 {
 	theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black"), axis.text = element_text(color="black"))
