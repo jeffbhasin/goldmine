@@ -4,10 +4,13 @@
 \alias{getGenes}
 \title{Load table of gene ranges via UCSC Genome Browser tables}
 \usage{
-getGenes(geneset = "ucsc", genome, cachedir = NULL, sync = TRUE)
+getGenes(geneset = "ucsc", gencodetable = NULL, genome, cachedir = NULL,
+  sync = TRUE)
 }
 \arguments{
-\item{geneset}{Select one of "ucsc" for the UCSC Genes (from the knownGene table), "refseq" for RefSeq genes (from the refFlat table), or "ensembl" for the Ensembl genes (from the ensGene table)}
+\item{geneset}{Select one of "ucsc" for the UCSC Genes (from the knownGene table), "refseq" for RefSeq genes (from the refFlat table), "gencode" for GENCODE genes, or "ensembl" for the Ensembl genes (from the ensGene table)}
+
+\item{gencodetable}{Only needed if geneset="gencode". Provide the name of the UCSC table that contains the GENCODE genes of interest. There are multiple builds and subsets. Find the GENCODE table names for a given geome listed under "Genes and Gene Predictions" at http://genome.ucsc.edu/cgi-bin/hgTables (for example, "wgEncodeGencodeCompV24lift37" is one available for "hg19")}
 
 \item{genome}{UCSC genome name to use (e.g. hg19, mm10)}
 

@@ -206,15 +206,17 @@ addGenes <- function(query,geneset,genome,cachedir,sync=TRUE)
 # -----------------------------------------------------------------------------
 #' Load table of gene ranges via UCSC Genome Browser tables
 #'
-#' @param geneset Select one of "ucsc" for the UCSC Genes (from the knownGene table), "refseq" for RefSeq genes (from the refFlat table), or "ensembl" for the Ensembl genes (from the ensGene table)
+#' @param geneset Select one of "ucsc" for the UCSC Genes (from the knownGene table), "refseq" for RefSeq genes (from the refFlat table), "gencode" for GENCODE genes, or "ensembl" for the Ensembl genes (from the ensGene table)
+#' @param gencodetable Only needed if geneset="gencode". Provide the name of the UCSC table that contains the GENCODE genes of interest. There are multiple builds and subsets. Find the GENCODE table names for a given geome listed under "Genes and Gene Predictions" at http://genome.ucsc.edu/cgi-bin/hgTables (for example, "wgEncodeGencodeCompV24lift37" is one available for "hg19")
 #' @param genome UCSC genome name to use (e.g. hg19, mm10)
 #' @param cachedir Path where cached UCSC tables are stores
 #' @param sync If TRUE, then check if newer versions of UCSC tables are available and download them if so. If FALSE, skip this check. Can be used to freeze data versions in an analysis-specific cachedir for reproducibility.
 #' @export
-getGenes <- function(geneset="ucsc",genome,cachedir=NULL,sync=TRUE)
+getGenes <- function(geneset="ucsc",gencodetable=NULL,genome,cachedir=NULL,sync=TRUE)
 {
 	# Validate geneset
-	if(!(geneset %in% c("ucsc","refseq","ensembl"))){stop("geneset must be one of \"ucsc\", \"refseq\", or \"ensembl\"")}
+	if(!(geneset %in% c("ucsc","refseq","gencode","ensembl"))){stop("geneset must be one of \"ucsc\", \"refseq\", \"gencode\", or \"ensembl\"")}
+	if((geneset=="gencode")&(is.null(gencodetable))){stop("Please provide the UCSC Genome Browser table name for the GENCODE gene build of interest (for example: wgEncodeGencodeBasicV19)")}
 
 	if(geneset=="ucsc")
 	{
@@ -246,6 +248,10 @@ getGenes <- function(geneset="ucsc",genome,cachedir=NULL,sync=TRUE)
 		setkey(en,"isoform.id")
 		genes <- en[eg,list(chr=chrom,start=txStart+1,end=txEnd,strand=strand,name=value,gene.id=name2,isoform.id=isoform.id,cdsStart=cdsStart,cdsEnd=cdsEnd,exonCount=exonCount,exonStarts=exonStarts,exonEnds=exonEnds)]
 		return(genes)
+	} else if(geneset=="gencode")
+	{
+		gg <- getUCSCTable(gencodetable,genome,cachedir,sync=sync)
+		genes <- gg[,list(chr=chrom,start=txStart+1,end=txEnd,strand=strand,name=name2,gene.id=name2,isoform.id=name,cdsStart=cdsStart,cdsEnd=cdsEnd,exonCount=exonCount,exonStarts=exonStarts,exonEnds=exonEnds)]
 	}
 }
 # --------------------------------------------------------------------
