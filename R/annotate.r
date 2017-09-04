@@ -506,7 +506,13 @@ calcOverlapForReportExons <- function(query.gr, subject.gr, sum.all=TRUE, report
 # expands the output to include 0%s - should match row number of query.gr
 calcPercentOverlap <- function(query.gr, subject.gr, sum.all=TRUE, report.bp=FALSE)
 {
-	#subject.gr <- reduce(subject.gr)
+	# this function gives a percent without respect to strand (run twice on each strand separate for stranded results)
+	# ignore strand if it was given in input GRanges
+	strand(query.gr) <- "*"
+	strand(subject.gr) <- "*"
+	# need to set reduce the subject so overlapping ranges on different strand are now one range
+	subject.gr <- reduce(subject.gr)
+
 	overlaps.fo <- findOverlaps(query.gr, subject.gr)
 
 	# compute width of each overlap row
