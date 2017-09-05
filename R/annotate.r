@@ -170,6 +170,9 @@ goldmine <- function(query, genes=getGenes(geneset="ucsc", genome=genome, cached
 				}
 				all.o <- rbind(exon.o, intron.o)
 
+				if(nrow(all.o)>0)
+				{
+
 				message("Generating exon/intron overlap diagrams")
 				kgxs <- rbind(data.table(srow=genemodels$exon$srow, num=genemodels$exon$num, type="E"), data.table(srow=genemodels$intron$srow, num=genemodels$intron$num, type="I"))
 				pairs.dt <- data.table(qrow=anng$qrow, srow=anng$srow)
@@ -205,6 +208,8 @@ goldmine <- function(query, genes=getGenes(geneset="ucsc", genome=genome, cached
 				st.dt <- rbind(st.dt1,st.dt2)
 
 				anng <- merge(anng,st.dt,by=c("qrow","srow"),all.x=T)
+
+				}
 
 				# 3' Ends
 				end.o <- goldmine:::calcOverlapForReport(query.gr,genemodels$end3, all=FALSE)
