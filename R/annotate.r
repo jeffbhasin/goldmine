@@ -160,8 +160,14 @@ goldmine <- function(query, genes=getGenes(geneset="ucsc", genome=genome, cached
 				# Exon and Intron Diagram
 				exon.o <- goldmine:::calcOverlapForReportExons(query.gr, genemodels$exon)
 				intron.o <- goldmine:::calcOverlapForReportExons(query.gr, genemodels$intron)
-				exon.o$type <- "E"
-				intron.o$type <- "I"
+				if(nrow(exon.o)>0)
+				{
+					exon.o$type <- "E"
+				}
+				if(nrow(intron.o)>0)
+				{
+					intron.o$type <- "I"
+				}
 				all.o <- rbind(exon.o, intron.o)
 
 				message("Generating exon/intron overlap diagrams")
