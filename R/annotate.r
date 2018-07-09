@@ -460,7 +460,7 @@ calcOverlapForReport <- function(query.gr, subject.gr, all=TRUE)
 	overlaps.fo <- findOverlaps(query.gr, subject.gr)
 
 	# compute width of each overlap row
-	ranges.fo <- ranges(overlaps.fo, ranges(query.gr), ranges(subject.gr))
+	ranges.fo <- suppressWarnings(overlapsRanges(hits=overlaps.fo, query=ranges(query.gr), subject=ranges(subject.gr)))
 
 	# make df with each query and its overlapping width
 	ofoq <- queryHits(overlaps.fo)
@@ -488,7 +488,7 @@ calcOverlapForReportExons <- function(query.gr, subject.gr, sum.all=TRUE, report
 	overlaps.fo <- findOverlaps(query.gr, subject.gr)
 
 	# compute width of each overlap row
-	ranges.fo <- ranges(overlaps.fo, ranges(query.gr), ranges(subject.gr))
+	ranges.fo <- suppressWarnings(overlapsRanges(hits=overlaps.fo, query=ranges(query.gr), subject=ranges(subject.gr)))
 
 	# make df with each query and its overlapping width
 	ofoq <- queryHits(overlaps.fo)
@@ -510,7 +510,7 @@ calcPercentOverlap <- function(query.gr, subject.gr, sum.all=TRUE, report.bp=FAL
 	overlaps.fo <- findOverlaps(query.gr, subject.gr)
 
 	# compute width of each overlap row
-	ranges.fo <- ranges(overlaps.fo, ranges(query.gr), ranges(subject.gr))
+	ranges.fo <- suppressWarnings(overlapsRanges(hits=overlaps.fo, query=ranges(query.gr), subject=ranges(subject.gr)))
 
 	# make df with each query and its overlapping width
 	width.df <- data.frame(query=queryHits(overlaps.fo), width=width(ranges.fo))
