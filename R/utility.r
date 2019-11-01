@@ -140,7 +140,9 @@ addNearest <- function(query,subject,id="name",prefix="subject")
 	subject.gr <- makeGRanges(subject)
 
 	# Get distances
-	dist <- as.data.frame(distanceToNearest(query.gr,subject.gr))$distance
+	dtn <- as.data.frame(distanceToNearest(query.gr,subject.gr))
+	dist <- dtn$distance[match(1:nrow(query.dt),dtn$queryHits)]
+	stopifnot(length(dist)==nrow(query.dt))
 
 	# Get names
 	fo <- data.table(as.data.frame(nearest(query.gr,subject.gr,select="all")))
